@@ -278,15 +278,17 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 ).apply {
                     topMargin = context.resources.getDimensionPixelSize(R.dimen.search_box_container_height)
                 }
-                setBackgroundColor(0x20FF0000.toInt())
+                setBackgroundColor(0xFFFF0000.toInt())
+                minimumHeight = 48
             }
             addView(tabBar)
+            android.widget.Toast.makeText(context, "Tab bar added", android.widget.Toast.LENGTH_SHORT).show()
 
-            Log.d("DrawerPages", "Tab bar added, setting up compose...")
-            val viewModel = DrawerPageViewModel(launcher.application as android.app.Application)
+            val application = context.applicationContext as android.app.Application
+            val viewModel = DrawerPageViewModel(application)
 
             tabBar.setContent {
-                app.lawnchair.ui.theme.LawnchairTheme {
+                LawnchairTheme {
                     val pages by viewModel.pages.collectAsState()
                     val selectedPageId by viewModel.selectedPageId.collectAsState()
                     val isBulkSelect by viewModel.isBulkSelectMode.collectAsState()
@@ -314,9 +316,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                     )
                 }
             }
-            Log.d("DrawerPages", "Tab bar setup complete")
         } catch (e: Exception) {
-            Log.e("DrawerPages", "Failed to init page tabs", e)
+            android.util.Log.e("DrawerPages", "Failed to init page tabs", e)
+            android.widget.Toast.makeText(context, "Tab bar failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
