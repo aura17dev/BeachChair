@@ -137,7 +137,6 @@
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/drawer_page_tabs"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
+        android:layout_height="wrap_content" />
 
 </app.lawnchair.allapps.AllAppsSearchInput>

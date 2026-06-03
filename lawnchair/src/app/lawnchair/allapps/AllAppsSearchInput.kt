@@ -307,8 +307,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         }
 
         viewModel.pages
-            .onEach { pages ->
-                tabBar.visibility = if (pages.isNotEmpty()) View.VISIBLE else View.GONE
+            .onEach {
+                // Always show the tab bar so users can create their first page
+                tabBar.visibility = View.VISIBLE
             }
             .launchIn(viewAttachedScope)
     }
