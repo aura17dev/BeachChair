@@ -11,6 +11,7 @@ import android.text.Spanned.SPAN_POINT_MARK
 import android.text.method.TextKeyListener
 import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.View.OnFocusChangeListener
@@ -271,48 +272,53 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     }
 
     private fun initPageTabs() {
-        val tabBar = ViewCompat.requireViewById<androidx.compose.ui.platform.ComposeView>(
-            this,
-            R.id.drawer_page_tabs,
-        )
-        val viewModel = DrawerPageViewModel(launcher.application as android.app.Application)
+        try {
+            val tabBar = ViewCompat.requireViewById<androidx.compose.ui.platform.ComposeView>(
+                this,
+                R.id.drawer_page_tabs,
+            )
+            Log.d("DrawerPages", "Tab bar found, setting up...")
+            val viewModel = DrawerPageViewModel(launcher.application as android.app.Application)
 
-        tabBar.setContent {
-            app.lawnchair.ui.theme.LawnchairTheme {
-                val pages by viewModel.pages.collectAsState()
-                val selectedPageId by viewModel.selectedPageId.collectAsState()
-                val isBulkSelect by viewModel.isBulkSelectMode.collectAsState()
-                val selectedApps by viewModel.selectedApps.collectAsState()
+            tabBar.setContent {
+                app.lawnchair.ui.theme.LawnchairTheme {
+                    val pages by viewModel.pages.collectAsState()
+                    val selectedPageId by viewModel.selectedPageId.collectAsState()
+                    val isBulkSelect by viewModel.isBulkSelectMode.collectAsState()
+                    val selectedApps by viewModel.selectedApps.collectAsState()
 
-                DrawerPageTabBar(
-                    pages = pages,
-                    selectedPageId = selectedPageId,
-                    isBulkSelectMode = isBulkSelect,
-                    selectedCount = selectedApps.size,
-                    onPageSelected = { pageId ->
-                        viewModel.selectPage(pageId)
-                        filterAppsByPage(pageId, pages)
-                    },
-                    onPageLongPress = { page ->
-                        showRenamePageSheet(page, pages, viewModel)
-                    },
-                    onExitBulkSelect = { viewModel.exitBulkSelectMode() },
-                    onMoveSelected = {
-                        showMoveToPageSheet(pages, viewModel, selectedApps)
-                    },
-                    onCreatePage = {
-                        showCreatePageSheet(pages, viewModel)
-                    },
-                )
+                    DrawerPageTabBar(
+                        pages = pages,
+                        selectedPageId = selectedPageId,
+                        isBulkSelectMode = isBulkSelect,
+                        selectedCount = selectedApps.size,
+                        onPageSelected = { pageId ->
+                            viewModel.selectPage(pageId)
+                            filterAppsByPage(pageId, pages)
+                        },
+                        onPageLongPress = { page ->
+                            showRenamePageSheet(page, pages, viewModel)
+                        },
+                        onExitBulkSelect = { viewModel.exitBulkSelectMode() },
+                        onMoveSelected = {
+                            showMoveToPageSheet(pages, viewModel, selectedApps)
+                        },
+                        onCreatePage = {
+                            showCreatePageSheet(pages, viewModel)
+                        },
+                    )
+                }
             }
+
+            viewModel.pages
+                .onEach {
+                    tabBar.visibility = View.VISIBLE
+                }
+                .launchIn(viewAttachedScope)
+            Log.d("DrawerPages", "Tab bar setup complete")
+        } catch (e: Exception) {
+            Log.e("DrawerPages", "Failed to init page tabs", e)
         }
-
-        viewModel.pages
-            .onEach {
-                // Always show the tab bar so users can create their first page
-                tabBar.visibility = View.VISIBLE
-            }
-            .launchIn(viewAttachedScope)
     }
 
     private fun filterAppsByPage(pageId: Int?, pages: List<FolderInfo>) {
