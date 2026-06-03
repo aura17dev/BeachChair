@@ -18,6 +18,7 @@ import android.view.ViewTreeObserver
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,7 +75,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
-    FrameLayout(context, attrs),
+    LinearLayout(context, attrs),
     Insettable,
     OnIDPChangeListener,
     SearchUiManager,
