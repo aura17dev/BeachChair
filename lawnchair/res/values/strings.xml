@@ -1003,4 +1003,16 @@
     <string name="lawnchair_action_failed">Failed to trigger action</string>
 
     <string name="please_wait">Please wait…</string>
+
+    <!-- Beach Mods -->
+    <string name="beach_mods_label">Beach Mods</string>
+    <string name="beach_mods_description">Fun customizations for your Lawnchair</string>
+    <string name="beach_icon_bounce_label">Icon bounce</string>
+    <string name="beach_icon_bounce_description">Icons gently bounce into place when opening the app drawer</string>
+    <string name="beach_drawer_overshoot_label">Drawer overshoot</string>
+    <string name="beach_drawer_overshoot_description">App drawer bounces past its resting position when opened</string>
+    <string name="beach_pixelated_fade_label">Pixelated fade</string>
+    <string name="beach_pixelated_fade_description">App drawer icons fade in with a retro stepped effect</string>
+    <string name="beach_scale_bounce_label">Drawer scale bounce</string>
+    <string name="beach_scale_bounce_description">App drawer scales up with a bounce when opened</string>
 </resources>

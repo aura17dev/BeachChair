@@ -109,7 +109,12 @@ class LawnchairApp : LauncherApplication() {
         val restoredDbFile = getDatabasePath(LawnchairBackup.RESTORED_DB_FILE_NAME)
         if (!restoredDbFile.exists()) return
         val dbFile = getDatabasePath(dbName)
-        restoredDbFile.renameTo(dbFile)
+        if (dbFile.exists()) {
+            dbFile.delete()
+        }
+        if (!restoredDbFile.renameTo(dbFile)) {
+            Log.e(TAG, "Failed to rename restored DB to $dbName")
+        }
     }
 
     fun migrateDbName(dbName: String) {
@@ -122,10 +127,16 @@ class LawnchairApp : LauncherApplication() {
         val oldDbFile = getDatabasePath(oldDbName)
         val oldDbJournalFile = getJournalFile(oldDbFile)
         if (oldDbFile.exists()) {
-            oldDbFile.copyTo(dbFile)
-            oldDbJournalFile.copyTo(dbJournalFile)
-            oldDbFile.delete()
-            oldDbJournalFile.delete()
+            try {
+                oldDbFile.copyTo(dbFile, overwrite = true)
+                if (oldDbJournalFile.exists()) {
+                    oldDbJournalFile.copyTo(dbJournalFile, overwrite = true)
+                    oldDbJournalFile.delete()
+                }
+                oldDbFile.delete()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to migrate database from $oldDbName to $dbName", e)
+            }
         }
     }
 

@@ -48,7 +48,7 @@ class FeedBridge(private val context: Context) {
     @JvmOverloads
     fun resolveBridge(customPackage: String = prefs.feedProvider.get()): BridgeInfo? {
         val customBridge = customBridgeOrNull(customPackage)
-        val feedProvider = customPackage.toBoolean()
+        val feedProvider = customPackage.toBooleanStrictOrNull() ?: false
         return when {
             customBridge != null -> customBridge
             !shouldUseFeed && !feedProvider -> null
@@ -112,14 +112,15 @@ class FeedBridge(private val context: Context) {
                 Utilities.ATLEAST_P -> {
                     val info =
                         context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                    val signingInfo = info.signingInfo
-                    if (signingInfo!!.hasMultipleSigners()) return false
+                    val signingInfo = info.signingInfo ?: return false
+                    if (signingInfo.hasMultipleSigners()) return false
                     return signingInfo.signingCertificateHistory.any { it.hashCode() == signatureHash }
                 }
 
                 else -> {
                     val info = context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                    return if (info.signatures!!.any { it.hashCode() != signatureHash }) false else info.signatures!!.isNotEmpty()
+                    val signatures = info.signatures ?: return false
+                    return if (signatures.any { it.hashCode() != signatureHash }) false else signatures.isNotEmpty()
                 }
             }
         }
@@ -132,8 +133,8 @@ class FeedBridge(private val context: Context) {
             if (signatureHash == -1 && Utilities.ATLEAST_P) {
                 val info = context.packageManager
                     .getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                val signingInfo = info.signingInfo
-                if (signingInfo!!.hasMultipleSigners()) return false
+                val signingInfo = info.signingInfo ?: return false
+                if (signingInfo.hasMultipleSigners()) return false
                 signingInfo.signingCertificateHistory.forEach {
                     val hash = Integer.toHexString(it.hashCode())
                     Log.d(TAG, "Feed provider $packageName(0x$hash) isn't whitelisted")

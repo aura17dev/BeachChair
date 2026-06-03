@@ -733,6 +733,31 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.recreate() },
     )
 
+    val iconBounce = preference(
+        key = booleanPreferencesKey(name = "beach_icon_bounce"),
+        defaultValue = true,
+    )
+
+    val drawerOvershoot = preference(
+        key = booleanPreferencesKey(name = "beach_drawer_overshoot"),
+        defaultValue = true,
+    )
+
+    val pixelatedFade = preference(
+        key = booleanPreferencesKey(name = "beach_pixelated_fade"),
+        defaultValue = true,
+    )
+
+    val scaleBounce = preference(
+        key = booleanPreferencesKey(name = "beach_scale_bounce"),
+        defaultValue = true,
+    )
+
+    val defaultWallpaperApplied = preference(
+        key = booleanPreferencesKey(name = "default_wallpaper_applied"),
+        defaultValue = false,
+    )
+
     val deckLayout = preference(
         key = booleanPreferencesKey(name = "enable_lawn_deck"),
         defaultValue = false,

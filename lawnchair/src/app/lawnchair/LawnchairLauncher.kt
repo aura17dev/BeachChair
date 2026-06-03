@@ -28,10 +28,12 @@ import android.view.Display
 import android.view.View
 import android.view.ViewTreeObserver
 import android.window.SplashScreen
+import androidx.dynamicanimation.animation.DynamicAnimation
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairApp.Companion.showQuickstepWarningIfNecessary
+import app.lawnchair.animation.physicsAnimator
 import app.lawnchair.compat.LawnchairQuickstepCompat
 import app.lawnchair.data.AppDatabase
 import app.lawnchair.data.wallpaper.service.WallpaperService
@@ -147,6 +149,38 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    private val iconBounceListener = object : StateManager.StateListener<LauncherState> {
+        override fun onStateTransitionStart(toState: LauncherState) {
+            if (toState is AllAppsState && preferenceManager2.iconBounce.firstBlocking()) {
+                mAppsView?.activeRecyclerView?.let { rv ->
+                    for (i in 0 until rv.childCount) {
+                        (rv.getChildAt(i) as? BubbleTextView)?.let {
+                            it.scaleX = 0.85f
+                            it.scaleY = 0.85f
+                        }
+                    }
+                }
+            }
+        }
+        override fun onStateTransitionComplete(finalState: LauncherState) {
+            if (finalState is AllAppsState) {
+                mAppsView?.activeRecyclerView?.let { rv ->
+                    val icons = (0 until rv.childCount).mapNotNull { i ->
+                        rv.getChildAt(i) as? BubbleTextView
+                    }
+                    icons.forEachIndexed { index, icon ->
+                        icon.postDelayed({
+                            icon.physicsAnimator
+                                .spring(DynamicAnimation.SCALE_X, 1f, stiffness = 280f)
+                                .spring(DynamicAnimation.SCALE_Y, 1f, stiffness = 280f)
+                                .start()
+                        }, index * 18L)
+                    }
+                }
+            }
+        }
+    }
+
     private lateinit var colorScheme: ColorScheme
     private var hasBackGesture = false
 
@@ -162,6 +196,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             defaultOverlay.setEnableFeed(enable)
         }.launchIn(scope = lifecycleScope)
         launcher.stateManager.addStateListener(clearSearchStateListener)
+        launcher.stateManager.addStateListener(iconBounceListener)
 
         if (prefs.autoLaunchRoot.get()) {
             lifecycleScope.launch {
@@ -245,6 +280,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         reloadIconsIfNeeded()
 
         AppDatabase.INSTANCE.get(this).checkpointSync()
+
+        lifecycleScope.launch {
+            DefaultWallpaperInitializer.applyIfNeeded(this@LawnchairLauncher)
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -409,9 +448,12 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     private fun getActivityLaunchOptionsDefault(v: View?): ActivityOptionsWrapper {
+        if (v == null) {
+            return ActivityOptionsWrapper(Utilities.allowBGLaunch(ActivityOptions.makeBasic()), RunnableList())
+        }
         var left = 0
         var top = 0
-        var width = v!!.measuredWidth
+        var width = v.measuredWidth
         var height = v.measuredHeight
         if (v is BubbleTextView) {
             // Launch from center of icon, not entire view

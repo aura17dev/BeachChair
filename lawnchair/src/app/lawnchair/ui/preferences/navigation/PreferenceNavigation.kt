@@ -27,6 +27,7 @@ import app.lawnchair.ui.preferences.components.search.SearchProviderPreferenceSc
 import app.lawnchair.ui.preferences.destinations.AppDrawerFoldersPreference
 import app.lawnchair.ui.preferences.destinations.AppDrawerPreferences
 import app.lawnchair.ui.preferences.destinations.BackupAndRestorePreference
+import app.lawnchair.ui.preferences.destinations.BeachModsPreferences
 import app.lawnchair.ui.preferences.destinations.CustomIconShapePreference
 import app.lawnchair.ui.preferences.destinations.DebugMenuPreferences
 import app.lawnchair.ui.preferences.destinations.DockPreferences
@@ -217,6 +218,9 @@ fun PreferenceNavigation(
         composable<ExperimentalFeatures>(
             deepLinks = getDeepLink(ExperimentalFeatures),
         ) { ExperimentalFeaturesPreferences() }
+        composable<BeachMods>(
+            deepLinks = getDeepLink(BeachMods),
+        ) { BeachModsPreferences() }
         composable<ColorSelection> { backStackEntry ->
             val screen: ColorSelection = backStackEntry.toRoute()
             val modelList = ColorPreferenceModelList.INSTANCE.get(LocalContext.current)

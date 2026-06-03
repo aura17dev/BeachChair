@@ -22,6 +22,7 @@ import static com.android.app.animation.Interpolators.EMPHASIZED_DECELERATE;
 import static com.android.app.animation.Interpolators.FINAL_FRAME;
 import static com.android.app.animation.Interpolators.INSTANT;
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.app.animation.Interpolators.OVERSHOOT_1_7;
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.states.StateAnimationConfig.ANIM_ALL_APPS_FADE;
@@ -43,6 +44,9 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.states.StateAnimationConfig;
+
+import app.lawnchair.preferences2.PreferenceManager2;
+import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 /**
  * TouchController to switch between NORMAL and ALL_APPS state.
@@ -135,6 +139,12 @@ public class AllAppsSwipeController extends AbstractStateChangeTouchController {
                     Interpolators.mapToProgress(EMPHASIZED_DECELERATE, 0.4f, 1f),
                     ALL_APPS_STATE_TRANSITION_ATOMIC, 1f);
     public static final Interpolator ALL_APPS_VERTICAL_PROGRESS_MANUAL = LINEAR;
+
+    /** Quantizes alpha into discrete steps for a retro "pixelated" fade-in effect. */
+    public static final Interpolator PIXELATED_FADE = input -> {
+        int steps = 8;
+        return Math.round(input * steps) / (float) steps;
+    };
 
     // --------
 
@@ -252,11 +262,15 @@ public class AllAppsSwipeController extends AbstractStateChangeTouchController {
      */
     public static void applyNormalToAllAppsAnimConfig(
             Launcher launcher, StateAnimationConfig config) {
+        PreferenceManager2 prefs = PreferenceManager2.getInstance(launcher);
+        boolean overshoot = PreferenceExtensionsKt.firstBlocking(prefs.getDrawerOvershoot());
+        boolean pixelated = PreferenceExtensionsKt.firstBlocking(prefs.getPixelatedFade());
         if (launcher.getDeviceProfile().shouldShowAllAppsOnSheet()) {
-            config.setInterpolator(ANIM_ALL_APPS_FADE, INSTANT);
+            config.setInterpolator(ANIM_ALL_APPS_FADE, pixelated ? PIXELATED_FADE : INSTANT);
             config.setInterpolator(ANIM_SCRIM_FADE, ALL_APPS_SCRIM_RESPONDER);
             if (!config.isUserControlled()) {
-                config.setInterpolator(ANIM_VERTICAL_PROGRESS, EMPHASIZED);
+                config.setInterpolator(ANIM_VERTICAL_PROGRESS,
+                        overshoot ? OVERSHOOT_1_7 : EMPHASIZED);
             }
             config.setInterpolator(ANIM_WORKSPACE_SCALE, ALL_APPS_SHEET_DEPTH);
             config.setInterpolator(ANIM_HOTSEAT_SCALE, ALL_APPS_SHEET_DEPTH);
@@ -285,11 +299,12 @@ public class AllAppsSwipeController extends AbstractStateChangeTouchController {
             config.setInterpolator(ANIM_SCRIM_FADE,
                     config.isUserControlled() ? SCRIM_FADE_MANUAL : SCRIM_FADE_ATOMIC);
             config.setInterpolator(ANIM_ALL_APPS_FADE,
-                    config.isUserControlled() ? ALL_APPS_FADE_MANUAL : ALL_APPS_FADE_ATOMIC);
+                    config.isUserControlled() ? ALL_APPS_FADE_MANUAL
+                            : pixelated ? PIXELATED_FADE : ALL_APPS_FADE_ATOMIC);
             config.setInterpolator(ANIM_VERTICAL_PROGRESS,
                     config.isUserControlled()
                             ? ALL_APPS_VERTICAL_PROGRESS_MANUAL
-                            : ALL_APPS_VERTICAL_PROGRESS_ATOMIC);
+                            : overshoot ? OVERSHOOT_1_7 : ALL_APPS_VERTICAL_PROGRESS_ATOMIC);
         }
     }
 

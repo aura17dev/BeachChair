@@ -15,8 +15,8 @@
  */
 package com.android.launcher3.allapps;
 
-import static com.android.app.animation.Interpolators.DECELERATE_1_7;
 import static com.android.app.animation.Interpolators.LINEAR;
+import static com.android.app.animation.Interpolators.OVERSHOOT_1_2;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_PROPERTY;
 import static com.android.launcher3.LauncherAnimUtils.VIEW_TRANSLATE_Y;
 import static com.android.launcher3.LauncherState.ALL_APPS;
@@ -35,6 +35,7 @@ import static com.android.launcher3.util.SystemUiController.UI_STATE_ALL_APPS;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.util.FloatProperty;
 import android.view.HapticFeedbackConstants;
@@ -390,7 +391,7 @@ public class AllAppsTransitionController
 
         // need to decide depending on the release velocity
         Interpolator verticalProgressInterpolator = config.getInterpolator(ANIM_VERTICAL_PROGRESS,
-                config.isUserControlled() ? LINEAR : DECELERATE_1_7);
+                config.isUserControlled() ? LINEAR : OVERSHOOT_1_2);
         Animator anim = createSpringAnimation(mProgress, targetProgress);
         anim.addListener(new AnimatorListenerAdapter() {
             @Override
@@ -424,7 +425,27 @@ public class AllAppsTransitionController
     }
 
     public Animator createSpringAnimation(float... progressValues) {
-        return ObjectAnimator.ofFloat(this, ALL_APPS_PROGRESS, progressValues);
+        Animator anim = ObjectAnimator.ofFloat(this, ALL_APPS_PROGRESS, progressValues);
+        if (mLauncher.getAppsView() != null) {
+            boolean scaleBounce = PreferenceExtensionsKt.firstBlocking(
+                    PreferenceManager2.getInstance(mLauncher).getScaleBounce());
+            if (!scaleBounce) {
+                return anim;
+            }
+            View appsView = mLauncher.getAppsView();
+            appsView.setScaleX(0.85f);
+            appsView.setScaleY(0.85f);
+            Animator scaleX = ObjectAnimator.ofFloat(appsView, View.SCALE_X,
+                    0.85f, 1.08f, 0.97f, 1.0f);
+            scaleX.setDuration(800);
+            Animator scaleY = ObjectAnimator.ofFloat(appsView, View.SCALE_Y,
+                    0.85f, 1.08f, 0.97f, 1.0f);
+            scaleY.setDuration(800);
+            AnimatorSet set = new AnimatorSet();
+            set.playTogether(anim, scaleX, scaleY);
+            return set;
+        }
+        return anim;
     }
 
     /**

@@ -103,6 +103,11 @@ data object ExperimentalFeatures : PreferenceRootRoute, PreferenceDeepLink {
 }
 
 @Serializable
+data object BeachMods : PreferenceRootRoute, PreferenceDeepLink {
+    override val deepLink = "$URI/beach-mods"
+}
+
+@Serializable
 data object DebugMenu : PreferenceRootRoute
 
 @Serializable

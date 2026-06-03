@@ -22,6 +22,7 @@ object LauncherOptionsPopup {
         LauncherOptionPopupItem("wallpaper", true),
         LauncherOptionPopupItem("widgets", true),
         LauncherOptionPopupItem("all_apps", true),
+        LauncherOptionPopupItem("beach_mods", true),
         LauncherOptionPopupItem("home_settings", true),
         LauncherOptionPopupItem("sys_settings", false),
         LauncherOptionPopupItem("default_page", true),
@@ -59,6 +60,7 @@ object LauncherOptionsPopup {
         onStartWallpaperPicker: (View) -> Boolean,
         onStartWidgetsMenu: (View) -> Boolean,
         onStartHomeSettings: (View) -> Boolean,
+        onStartBeachMods: (View) -> Boolean,
     ): ArrayList<OptionItem> {
         val prefs2 = getInstance(launcher!!)
         val lockHomeScreen = prefs2.lockHomeScreen.firstBlocking()
@@ -126,6 +128,13 @@ object LauncherOptionsPopup {
                 R.drawable.ic_home_screen,
                 LauncherEvent.LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS,
                 onStartHomeSettings,
+            ),
+            "beach_mods" to OptionItem(
+                launcher,
+                R.string.beach_mods_label,
+                R.drawable.ic_beach,
+                LauncherEvent.IGNORE,
+                onStartBeachMods,
             ),
             "default_page" to OptionItem(
                 launcher,

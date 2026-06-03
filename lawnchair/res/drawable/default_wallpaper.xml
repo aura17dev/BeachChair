@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Default wallpaper for Lawnchair.
+  ~ A subtle green-to-teal gradient inspired by the Lawnchair brand.
+  ~ Replace this with a static wallpaper image (PNG/WebP) if you prefer.
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#1B5E20"
+        android:centerColor="#00695C"
+        android:endColor="#0D47A1"
+        android:angle="135"
+        android:type="linear" />
+</shape>

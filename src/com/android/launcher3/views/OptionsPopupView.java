@@ -211,7 +211,8 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
             OptionsPopupView::enterAllApps,
             OptionsPopupView::startWallpaperPicker,
             OptionsPopupView::onWidgetsClicked,
-            OptionsPopupView::startSettings
+            OptionsPopupView::startSettings,
+            OptionsPopupView::startBeachMods
         );
     }
 
@@ -239,6 +240,16 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
         TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "start: startSettings");
         Launcher launcher = Launcher.getLauncher(view.getContext());
         Intent intent = new Intent(Intent.ACTION_APPLICATION_PREFERENCES)
+                .setPackage(launcher.getPackageName())
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        launcher.startActivitySafely(view, intent, placeholderInfo(intent));
+        return true;
+    }
+
+    private static boolean startBeachMods(View view) {
+        Launcher launcher = Launcher.getLauncher(view.getContext());
+        Intent intent = new Intent(Intent.ACTION_VIEW,
+                android.net.Uri.parse("lawnchair://settings/beach-mods"))
                 .setPackage(launcher.getPackageName())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         launcher.startActivitySafely(view, intent, placeholderInfo(intent));

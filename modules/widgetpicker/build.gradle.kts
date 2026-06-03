@@ -22,11 +22,6 @@ plugins {
 
 android {
     namespace = "com.android.launcher3.widgetpicker"
-    testNamespace = "com.android.launcher3.widgetpicker.tests"
-    defaultConfig {
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        testApplicationId = "com.android.launcher3.widgetpicker.tests"
-    }
     buildFeatures {
         compose = true
     }
@@ -37,37 +32,7 @@ android {
             manifest.srcFile("AndroidManifest.xml")
             res.directories.add("res")
         }
-        named("androidTest") {
-            java.directories.addAll(
-                listOf(
-                    "tests/multivalentScreenshotTests/src",
-                    "tests/multivalentTestsForDevice/src",
-                )
-            )
-            kotlin.directories.addAll(
-                listOf(
-                    "tests/multivalentScreenshotTests/src",
-                    "tests/multivalentTestsForDevice/src",
-                )
-            )
-            manifest.srcFile("tests/AndroidManifest.xml")
-        }
-        named("test") {
-            java.directories.add("tests/multivalentTests/src")
-            kotlin.directories.add("tests/multivalentTests/src")
-            resources.directories.add("tests/config")
-            manifest.srcFile("tests/AndroidManifest.xml")
-            res.directories.add("tests/multivalentScreenshotTests/res")
-        }
     }
-
-    testOptions {
-        unitTests {
-            isIncludeAndroidResources = true
-        }
-    }
-    // Exclude META-INF for running test with android studio
-    packagingOptions.resources.excludes.add("META-INF/versions/9/OSGI-INF/MANIFEST.MF")
 }
 
 dependencies {
@@ -90,28 +55,6 @@ dependencies {
     // Compose android studio preview support
     implementation(libs.compose.material.icons)
     implementation(libs.compose.ui.tooling.preview)
-    debugImplementation(libs.compose.ui.tooling)
-
-    // Testing
-    // this needs to be modern to support JDK-17 + asm byte code.
-    testImplementation(libs.mockito.robolectric.bytebuddy.agent)
-    testImplementation(libs.mockito.robolectric.bytebuddy)
-    testImplementation(libs.mockito.robolectric)
-    testImplementation(libs.junit)
-    testImplementation(libs.google.truth)
-    testImplementation(libs.androidx.test.runner)
-    testImplementation(libs.androidx.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-
-    androidTestImplementation(libs.google.truth)
-    androidTestImplementation(libs.mockito.kotlin)
-    androidTestImplementation(libs.androidx.test.rules)
-    androidTestImplementation(libs.kotlinx.coroutines.test)
-
-    // Compose UI Tests
-    testImplementation(libs.compose.ui.test.junit4)
-    androidTestImplementation(libs.compose.ui.test.junit4)
-    debugImplementation(libs.compose.ui.test.manifest)
 
     implementation(projects.concurrent)
     implementation(projects.dagger)

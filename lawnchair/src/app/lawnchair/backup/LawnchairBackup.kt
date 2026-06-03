@@ -87,7 +87,8 @@ class LawnchairBackup(
 
     private suspend fun readZip(handlers: Map<String, suspend (InputStream) -> Unit>) {
         withContext(Dispatchers.IO) {
-            val pfd = context.contentResolver.openFileDescriptor(uri, "r")!!
+            val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                ?: throw IllegalStateException("Cannot open backup file for reading: $uri")
             pfd.use {
                 FileInputStream(it.fileDescriptor).use { inStream ->
                     ZipInputStream(inStream).use { zipIs ->
@@ -158,7 +159,8 @@ class LawnchairBackup(
                 .setPreviewDarkText(wallpaperSupportsDarkText)
                 .build()
 
-            val pfd = context.contentResolver.openFileDescriptor(fileUri, "w")!!
+            val pfd = context.contentResolver.openFileDescriptor(fileUri, "w")
+                ?: throw IllegalStateException("Cannot open backup file for writing: $fileUri")
             withContext(Dispatchers.IO) {
                 pfd.use {
                     ZipOutputStream(FileOutputStream(pfd.fileDescriptor).buffered()).use { out ->
