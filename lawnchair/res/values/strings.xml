@@ -1015,4 +1015,6 @@
     <string name="beach_pixelated_fade_description">App drawer icons fade in with a retro stepped effect</string>
     <string name="beach_scale_bounce_label">Drawer scale bounce</string>
     <string name="beach_scale_bounce_description">App drawer scales up with a bounce when opened</string>
+    <string name="beach_drawer_pages_label">Drawer pages</string>
+    <string name="beach_drawer_pages_description">Organize apps into named pages with tabs at the top of the app drawer</string>
 </resources>

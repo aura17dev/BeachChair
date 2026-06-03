@@ -362,6 +362,11 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = context.resources.getBoolean(R.bool.config_default_lock_home_screen),
     )
 
+    val enableDrawerPages = preference(
+        key = booleanPreferencesKey(name = "enable_drawer_pages"),
+        defaultValue = false,
+    )
+
     val defaultHomePage = preference(
         key = intPreferencesKey(name = "default_home_page"),
         defaultValue = Workspace.DEFAULT_PAGE,

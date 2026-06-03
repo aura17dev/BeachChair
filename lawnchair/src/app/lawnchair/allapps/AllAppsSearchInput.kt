@@ -70,6 +70,8 @@ import com.android.systemui.shared.system.BlurUtils
 import com.patrykmichalik.opto.core.firstBlocking
 import java.util.Locale
 import kotlin.math.max
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
@@ -269,20 +271,35 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     }
 
     private fun initPageTabs() {
+        prefs2.enableDrawerPages.get()
+            .onEach { enabled ->
+                if (enabled) {
+                    showTabBar()
+                }
+            }
+            .launchIn(viewAttachedScope)
+    }
+
+    private var tabBarView: androidx.compose.ui.platform.ComposeView? = null
+
+    private fun showTabBar() {
+        if (tabBarView != null) return
         try {
             val tabBar = androidx.compose.ui.platform.ComposeView(context).apply {
                 id = View.generateViewId()
-                layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    topMargin = context.resources.getDimensionPixelSize(R.dimen.search_box_container_height)
-                }
                 setBackgroundColor(0xFFFF0000.toInt())
                 minimumHeight = 48
             }
-            addView(tabBar)
-            android.widget.Toast.makeText(context, "Tab bar added", android.widget.Toast.LENGTH_SHORT).show()
+            tabBarView = tabBar
+
+            val params = android.widget.RelativeLayout.LayoutParams(
+                android.widget.RelativeLayout.LayoutParams.MATCH_PARENT,
+                android.widget.RelativeLayout.LayoutParams.WRAP_CONTENT,
+            )
+            params.addRule(android.widget.RelativeLayout.BELOW, R.id.search_container_all_apps)
+
+            appsView.addView(tabBar, params)
+            android.widget.Toast.makeText(context, "Tab bar added to appsView", android.widget.Toast.LENGTH_SHORT).show()
 
             val application = context.applicationContext as android.app.Application
             val viewModel = DrawerPageViewModel(application)
@@ -317,7 +334,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("DrawerPages", "Failed to init page tabs", e)
+            android.util.Log.e("DrawerPages", "Failed to show tab bar", e)
             android.widget.Toast.makeText(context, "Tab bar failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
         }
     }

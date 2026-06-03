@@ -52,6 +52,13 @@ fun BeachModsPreferences(
                     description = stringResource(id = R.string.beach_scale_bounce_description),
                 )
             }
+            Item {
+                SwitchPreference(
+                    adapter = prefs2.enableDrawerPages.getAdapter(),
+                    label = stringResource(id = R.string.beach_drawer_pages_label),
+                    description = stringResource(id = R.string.beach_drawer_pages_description),
+                )
+            }
         }
     }
 }
