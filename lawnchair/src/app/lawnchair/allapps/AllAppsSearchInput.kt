@@ -19,7 +19,6 @@ import android.view.ViewTreeObserver
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -71,12 +70,10 @@ import com.android.systemui.shared.system.BlurUtils
 import com.patrykmichalik.opto.core.firstBlocking
 import java.util.Locale
 import kotlin.math.max
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
-    LinearLayout(context, attrs),
+    FrameLayout(context, attrs),
     Insettable,
     OnIDPChangeListener,
     SearchUiManager,
@@ -273,11 +270,19 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     private fun initPageTabs() {
         try {
-            val tabBar = ViewCompat.requireViewById<androidx.compose.ui.platform.ComposeView>(
-                this,
-                R.id.drawer_page_tabs,
-            )
-            Log.d("DrawerPages", "Tab bar found, setting up...")
+            val tabBar = androidx.compose.ui.platform.ComposeView(context).apply {
+                id = View.generateViewId()
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = context.resources.getDimensionPixelSize(R.dimen.search_box_container_height)
+                }
+                setBackgroundColor(0x20FF0000.toInt())
+            }
+            addView(tabBar)
+
+            Log.d("DrawerPages", "Tab bar added, setting up compose...")
             val viewModel = DrawerPageViewModel(launcher.application as android.app.Application)
 
             tabBar.setContent {
@@ -309,12 +314,6 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                     )
                 }
             }
-
-            viewModel.pages
-                .onEach {
-                    tabBar.visibility = View.VISIBLE
-                }
-                .launchIn(viewAttachedScope)
             Log.d("DrawerPages", "Tab bar setup complete")
         } catch (e: Exception) {
             Log.e("DrawerPages", "Failed to init page tabs", e)
