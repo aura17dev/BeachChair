@@ -22,7 +22,7 @@ fun BeachModsPreferences(
         modifier = modifier,
     ) {
         PreferenceGroup(
-            heading = stringResource(id = R.string.beach_mods_description),
+            heading = stringResource(id = R.string.beach_animations_heading),
         ) {
             Item {
                 SwitchPreference(
@@ -52,6 +52,8 @@ fun BeachModsPreferences(
                     description = stringResource(id = R.string.beach_scale_bounce_description),
                 )
             }
+        }
+        PreferenceGroup {
             Item {
                 SwitchPreference(
                     adapter = prefs2.enableDrawerPages.getAdapter(),

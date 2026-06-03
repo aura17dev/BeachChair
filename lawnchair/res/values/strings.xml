@@ -1007,6 +1007,7 @@
     <!-- Beach Mods -->
     <string name="beach_mods_label">Beach Mods</string>
     <string name="beach_mods_description">Fun customizations for your Lawnchair</string>
+    <string name="beach_animations_heading">Animations</string>
     <string name="beach_icon_bounce_label">Icon bounce</string>
     <string name="beach_icon_bounce_description">Icons gently bounce into place when opening the app drawer</string>
     <string name="beach_drawer_overshoot_label">Drawer overshoot</string>
