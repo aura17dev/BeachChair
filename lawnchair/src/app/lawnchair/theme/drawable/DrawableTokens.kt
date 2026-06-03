@@ -66,6 +66,8 @@ object DrawableTokens {
         .mutate { context, scheme, darkTheme ->
             val shape = getDrawable(0) as GradientDrawable
             shape.setColor(ColorTokens.SearchboxHighlight.resolveColor(context, scheme, darkTheme))
+            val strokePx = (1 * context.resources.displayMetrics.density).toInt()
+            shape.setStroke(strokePx, ColorTokens.SearchboxStroke.resolveColor(context, scheme, darkTheme))
         }
 
     @JvmField
@@ -73,6 +75,8 @@ object DrawableTokens {
         .mutate { context, scheme, darkTheme ->
             val shape = getDrawable(0) as GradientDrawable
             shape.setColor(ColorTokens.SearchboxHighlightBlur.resolveColor(context, scheme, darkTheme))
+            val strokePx = (1 * context.resources.displayMetrics.density).toInt()
+            shape.setStroke(strokePx, ColorTokens.SearchboxStroke.resolveColor(context, scheme, darkTheme))
         }
 
     @JvmField

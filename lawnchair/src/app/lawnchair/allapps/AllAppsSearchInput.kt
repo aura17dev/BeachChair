@@ -19,12 +19,20 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.ViewCompat
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
+import app.lawnchair.allapps.pages.CreatePageSheet
+import app.lawnchair.allapps.pages.DrawerPageTabBar
+import app.lawnchair.allapps.pages.DrawerPageViewModel
+import app.lawnchair.allapps.pages.MoveToPageSheet
+import app.lawnchair.allapps.pages.RenamePageSheet
 import app.lawnchair.launcher
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
@@ -40,7 +48,9 @@ import app.lawnchair.qsb.setThemedIconResource
 import app.lawnchair.search.LawnchairRecentSuggestionProvider
 import app.lawnchair.search.algorithms.LawnchairSearchAlgorithm
 import app.lawnchair.theme.drawable.DrawableTokens
+import app.lawnchair.ui.theme.LawnchairTheme
 import app.lawnchair.util.viewAttachedScope
+import app.lawnchair.views.ComposeBottomSheet
 import com.android.launcher3.Insettable
 import com.android.launcher3.InvariantDeviceProfile.OnIDPChangeListener
 import com.android.launcher3.LauncherState
@@ -51,12 +61,16 @@ import com.android.launcher3.allapps.AllAppsStore
 import com.android.launcher3.allapps.BaseAllAppsAdapter.AdapterItem
 import com.android.launcher3.allapps.SearchUiManager
 import com.android.launcher3.allapps.search.AllAppsSearchBarController
+import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.search.SearchCallback
+import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.Themes
 import com.android.systemui.shared.system.BlurUtils
 import com.patrykmichalik.opto.core.firstBlocking
 import java.util.Locale
 import kotlin.math.max
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
@@ -250,6 +264,120 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         if (hide) {
             isInvisible = true
             layoutParams.height = 0
+        }
+
+        initPageTabs()
+    }
+
+    private fun initPageTabs() {
+        val tabBar = ViewCompat.requireViewById<androidx.compose.ui.platform.ComposeView>(
+            this,
+            R.id.drawer_page_tabs,
+        )
+        val viewModel = DrawerPageViewModel(launcher.application as android.app.Application)
+
+        tabBar.setContent {
+            app.lawnchair.ui.theme.LawnchairTheme {
+                val pages by viewModel.pages.collectAsState()
+                val selectedPageId by viewModel.selectedPageId.collectAsState()
+                val isBulkSelect by viewModel.isBulkSelectMode.collectAsState()
+                val selectedApps by viewModel.selectedApps.collectAsState()
+
+                DrawerPageTabBar(
+                    pages = pages,
+                    selectedPageId = selectedPageId,
+                    isBulkSelectMode = isBulkSelect,
+                    selectedCount = selectedApps.size,
+                    onPageSelected = { pageId ->
+                        viewModel.selectPage(pageId)
+                        filterAppsByPage(pageId, pages)
+                    },
+                    onPageLongPress = { page ->
+                        showRenamePageSheet(page, pages, viewModel)
+                    },
+                    onExitBulkSelect = { viewModel.exitBulkSelectMode() },
+                    onMoveSelected = {
+                        showMoveToPageSheet(pages, viewModel, selectedApps)
+                    },
+                    onCreatePage = {
+                        showCreatePageSheet(pages, viewModel)
+                    },
+                )
+            }
+        }
+
+        viewModel.pages
+            .onEach { pages ->
+                tabBar.visibility = if (pages.isNotEmpty()) View.VISIBLE else View.GONE
+            }
+            .launchIn(viewAttachedScope)
+    }
+
+    private fun filterAppsByPage(pageId: Int?, pages: List<FolderInfo>) {
+        if (pageId == null) {
+            apps.updateItemFilter(null)
+            return
+        }
+        val page = pages.find { it.id == pageId } ?: return
+        val pageAppKeys = page.getContents().mapNotNull { it.componentKey }.toSet()
+        apps.updateItemFilter { info ->
+            info is com.android.launcher3.model.data.AppInfo && info.toComponentKey() in pageAppKeys
+        }
+    }
+
+    private fun showCreatePageSheet(pages: List<FolderInfo>, viewModel: DrawerPageViewModel) {
+        ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
+            CreatePageSheet(
+                existingPages = pages,
+                onCreate = { name ->
+                    viewModel.createPage(name)
+                    close(true)
+                },
+                onDismiss = { close(true) },
+            )
+        }
+    }
+
+    private fun showRenamePageSheet(
+        page: FolderInfo,
+        pages: List<FolderInfo>,
+        viewModel: DrawerPageViewModel,
+    ) {
+        ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
+            RenamePageSheet(
+                page = page,
+                existingPages = pages,
+                onRename = { name ->
+                    viewModel.renamePage(page.id, name)
+                    close(true)
+                },
+                onDelete = {
+                    viewModel.deletePage(page.id)
+                    close(true)
+                },
+                onDismiss = { close(true) },
+            )
+        }
+    }
+
+    private fun showMoveToPageSheet(
+        pages: List<FolderInfo>,
+        viewModel: DrawerPageViewModel,
+        selectedApps: Set<ComponentKey>,
+    ) {
+        ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
+            MoveToPageSheet(
+                pages = pages,
+                onCreatePage = {
+                    close(true)
+                    showCreatePageSheet(pages, viewModel)
+                },
+                onSelectPage = { page ->
+                    viewModel.moveAppsToPage(selectedApps, page.id)
+                    close(true)
+                },
+                onDismiss = { close(true) },
+            )
         }
     }
 
