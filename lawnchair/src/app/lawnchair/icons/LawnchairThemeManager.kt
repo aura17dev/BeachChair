@@ -7,12 +7,14 @@ import app.lawnchair.icons.shape.PathShapeDelegate
 import app.lawnchair.preferences.PreferenceChangeListener
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
+import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.concurrent.annotations.Ui
 import com.android.launcher3.dagger.ApplicationContext
 import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.graphics.ThemeManager
 import com.android.launcher3.util.DaggerSingletonTracker
+import com.android.launcher3.util.Executors
 import com.android.launcher3.util.LooperExecutor
 import com.patrykmichalik.opto.core.firstBlocking
 import javax.inject.Inject
@@ -80,6 +82,17 @@ constructor(
         iconState = newState
 
         listeners.forEach { it.onThemeChanged() }
+
+        // Reload the launcher model so already-loaded icons are regenerated with the new shape /
+        // theme. This is driven from here (rather than from the pref's onSet via
+        // ReloadHelper.reloadIcons) so the reload is guaranteed to run *after* iconState has been
+        // updated — the old onSet path raced the state update and frequently reloaded with the
+        // stale shape, which is why shape changes appeared to do nothing until a restart.
+        Executors.MODEL_EXECUTOR.execute {
+            val app = LauncherAppState.getInstance(context)
+            app.iconCache.clearMemoryCache()
+            app.model.reloadIfActive()
+        }
     }
 
     private fun prefs1State(): String = statePrefs1.joinToString(",") { it.get().toString() }

@@ -20,6 +20,7 @@ import android.animation.AnimatorSet
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -33,6 +34,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairApp.Companion.showQuickstepWarningIfNecessary
+import app.lawnchair.allapps.IconScrollWave
 import app.lawnchair.animation.physicsAnimator
 import app.lawnchair.compat.LawnchairQuickstepCompat
 import app.lawnchair.data.AppDatabase
@@ -181,6 +183,19 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    @Volatile
+    private var iconScrollWaveEnabled = true
+
+    private val iconScrollWaveListener = object : StateManager.StateListener<LauncherState> {
+        override fun onStateTransitionStart(toState: LauncherState) {
+            if (toState is AllAppsState) {
+                mAppsView?.let { appsView ->
+                    IconScrollWave.install(appsView) { iconScrollWaveEnabled }
+                }
+            }
+        }
+    }
+
     private lateinit var colorScheme: ColorScheme
     private var hasBackGesture = false
 
@@ -189,6 +204,9 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onCreate(savedInstanceState: Bundle?) {
         layoutInflater.factory2 = LawnchairLayoutFactory(this)
         super.onCreate(savedInstanceState)
+        // Ensure the status bar is always transparent so the launcher and immersive
+        // app drawer can draw content behind it (overrides theme's colorBackground default).
+        window?.statusBarColor = Color.TRANSPARENT
 
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
         prefs.feedProvider.subscribeChanges(this, defaultOverlay::reconnect)
@@ -197,6 +215,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         }.launchIn(scope = lifecycleScope)
         launcher.stateManager.addStateListener(clearSearchStateListener)
         launcher.stateManager.addStateListener(iconBounceListener)
+        launcher.stateManager.addStateListener(iconScrollWaveListener)
+        preferenceManager2.iconScrollWave.get().distinctUntilChanged().onEach { enabled ->
+            iconScrollWaveEnabled = enabled
+        }.launchIn(scope = lifecycleScope)
 
         if (prefs.autoLaunchRoot.get()) {
             lifecycleScope.launch {

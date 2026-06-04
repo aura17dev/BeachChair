@@ -1010,6 +1010,8 @@
     <string name="beach_animations_heading">Animations</string>
     <string name="beach_icon_bounce_label">Icon bounce</string>
     <string name="beach_icon_bounce_description">Icons gently bounce into place when opening the app drawer</string>
+    <string name="beach_icon_scroll_wave_label">Icon scroll wave</string>
+    <string name="beach_icon_scroll_wave_description">A magnifying wave ripples through the icons as you scroll the app drawer</string>
     <string name="beach_drawer_overshoot_label">Drawer overshoot</string>
     <string name="beach_drawer_overshoot_description">App drawer bounces past its resting position when opened</string>
     <string name="beach_pixelated_fade_label">Pixelated fade</string>

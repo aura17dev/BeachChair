@@ -46,8 +46,14 @@ class ReloadHelper(private val context: Context) {
     }
 
     /**
-     * This doesn't work, please migrate this to being a [ThemeManager] reload,
-     * as of right now the behaviour is defaulted to L3 that listens on prefs changes
+     * Forces a plain model + icon-cache reload.
+     *
+     * Note: this must NOT be used to apply icon *shape* / *theme* changes — those are stored in
+     * Lawnchair's DataStore, not [LauncherPrefs], so the reload has to be sequenced after
+     * [com.android.launcher3.graphics.ThemeManager] updates its icon state. That is handled by
+     * `LawnchairThemeManager.verifyIconState`, which observes the shape prefs and reloads the
+     * model itself. Calling this from a shape pref's `onSet` instead races that state update and
+     * reloads with the stale shape (which used to make shape changes appear to do nothing).
      */
     fun reloadIcons() {
         Executors.MODEL_EXECUTOR.execute {

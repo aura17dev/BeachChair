@@ -130,9 +130,9 @@ class PreferenceManager2 @Inject constructor(
                 ?: IconShapeManager.getSystemIconShape(context)
         },
         save = { it.toString() },
-        onSet = {
-            reloadHelper.reloadIcons()
-        },
+        // Icon regeneration is driven by LawnchairThemeManager.verifyIconState (which observes
+        // this pref) so the reload runs after the new shape state is applied. See ReloadHelper.
+        onSet = { },
     )
 
     val folderShape = preference(
@@ -146,9 +146,9 @@ class PreferenceManager2 @Inject constructor(
                 ?: IconShapeManager.getSystemIconShape(context)
         },
         save = { it.toString() },
-        onSet = {
-            reloadHelper.reloadIcons()
-        },
+        // Icon regeneration is driven by LawnchairThemeManager.verifyIconState (which observes
+        // this pref) so the reload runs after the new shape state is applied. See ReloadHelper.
+        onSet = { },
     )
 
     val customIconShape = preference(
@@ -740,6 +740,11 @@ class PreferenceManager2 @Inject constructor(
 
     val iconBounce = preference(
         key = booleanPreferencesKey(name = "beach_icon_bounce"),
+        defaultValue = true,
+    )
+
+    val iconScrollWave = preference(
+        key = booleanPreferencesKey(name = "beach_icon_scroll_wave"),
         defaultValue = true,
     )
 

@@ -33,6 +33,13 @@ fun BeachModsPreferences(
             }
             Item {
                 SwitchPreference(
+                    adapter = prefs2.iconScrollWave.getAdapter(),
+                    label = stringResource(id = R.string.beach_icon_scroll_wave_label),
+                    description = stringResource(id = R.string.beach_icon_scroll_wave_description),
+                )
+            }
+            Item {
+                SwitchPreference(
                     adapter = prefs2.drawerOvershoot.getAdapter(),
                     label = stringResource(id = R.string.beach_drawer_overshoot_label),
                     description = stringResource(id = R.string.beach_drawer_overshoot_description),
