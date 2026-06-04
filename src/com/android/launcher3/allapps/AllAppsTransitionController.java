@@ -426,13 +426,23 @@ public class AllAppsTransitionController
 
     public Animator createSpringAnimation(float... progressValues) {
         Animator anim = ObjectAnimator.ofFloat(this, ALL_APPS_PROGRESS, progressValues);
-        if (mLauncher.getAppsView() != null) {
+        final View appsView = mLauncher.getAppsView();
+        if (appsView != null) {
             boolean scaleBounce = PreferenceExtensionsKt.firstBlocking(
                     PreferenceManager2.getInstance(mLauncher).getScaleBounce());
-            if (!scaleBounce) {
+            // Only bounce-scale when opening the drawer (target vertical progress ~0). Running it
+            // on every transition meant the apps view was shrunk to 0.85 while *closing* or
+            // snapping back too; if that animation was then interrupted (e.g. grabbing the drawer
+            // and dragging it down) the view stayed stuck at a fractional scale — the
+            // "miniature drawer" bug. On any non-opening transition we also proactively clear the
+            // scale so a previously stuck state can never persist.
+            boolean opening = progressValues.length > 0
+                    && progressValues[progressValues.length - 1] <= 0.001f;
+            if (!scaleBounce || !opening) {
+                appsView.setScaleX(1f);
+                appsView.setScaleY(1f);
                 return anim;
             }
-            View appsView = mLauncher.getAppsView();
             appsView.setScaleX(0.85f);
             appsView.setScaleY(0.85f);
             Animator scaleX = ObjectAnimator.ofFloat(appsView, View.SCALE_X,
@@ -443,6 +453,21 @@ public class AllAppsTransitionController
             scaleY.setDuration(800);
             AnimatorSet set = new AnimatorSet();
             set.playTogether(anim, scaleX, scaleY);
+            // Guarantee the apps view returns to full scale even if the bounce is cancelled
+            // mid-flight, so it can never be left as a miniature drawer.
+            set.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                    appsView.setScaleX(1f);
+                    appsView.setScaleY(1f);
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    appsView.setScaleX(1f);
+                    appsView.setScaleY(1f);
+                }
+            });
             return set;
         }
         return anim;
