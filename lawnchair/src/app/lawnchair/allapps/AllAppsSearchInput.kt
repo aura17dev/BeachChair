@@ -16,6 +16,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.view.ViewTreeObserver
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -23,13 +24,18 @@ import android.widget.TextView
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
+import app.lawnchair.allapps.pages.AddAppsToPageSheet
+import app.lawnchair.allapps.pages.AppListItem
 import app.lawnchair.allapps.pages.CreatePageSheet
+import app.lawnchair.allapps.pages.DrawerBulkSelectController
 import app.lawnchair.allapps.pages.DrawerPageTabBar
 import app.lawnchair.allapps.pages.DrawerPageViewModel
 import app.lawnchair.allapps.pages.MoveToPageSheet
@@ -101,6 +107,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     }
 
     private lateinit var apps: LawnchairAlphabeticalAppsList<*>
+    private lateinit var mainApps: LawnchairAlphabeticalAppsList<*>
     private lateinit var appsView: ActivityAllAppsContainerView<*>
     private var searchAlgorithm: LawnchairSearchAlgorithm? = null
 
@@ -125,6 +132,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     private var initialPaddingLeft: Int = 0
     private var initialPaddingRight: Int = 0
+
+    // 8 dp topMargin + 4 dp handle height + 8 dp gap = 20 dp reserved for the drag handle pill.
+    private val drawerHandleAreaPx = (20 * resources.displayMetrics.density).toInt()
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -219,8 +229,11 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 animateHintVisibility(true)
                 animatePadding(currentPaddingLeft / 2, currentPaddingRight / 2)
 
-                // Sometimes the user has to click the input bar one more time
-                // for the keyboard to show.
+                // Explicitly pop the IME as soon as the field gains focus. The framework does
+                // not reliably auto-show the keyboard on the first focus inside the launcher
+                // window, which is why opening search used to require a second tap. Posting it
+                // ensures the window/IME connection is ready before we request it.
+                post { input.showKeyboard() }
             } else {
                 setBackgroundVisibility(true, 1f)
                 animateHintVisibility(false)
@@ -275,20 +288,24 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             .onEach { enabled ->
                 if (enabled) {
                     showTabBar()
+                } else {
+                    hideTabBar()
                 }
             }
             .launchIn(viewAttachedScope)
     }
 
     private var tabBarView: androidx.compose.ui.platform.ComposeView? = null
+    private var drawerPageViewModel: DrawerPageViewModel? = null
+    private var bulkSelectController: DrawerBulkSelectController? = null
+    private var tabBarHeightPx: Int = 0
 
     private fun showTabBar() {
         if (tabBarView != null) return
+        if (!::appsView.isInitialized) return
         try {
             val tabBar = androidx.compose.ui.platform.ComposeView(context).apply {
                 id = View.generateViewId()
-                setBackgroundColor(0xFFFF0000.toInt())
-                minimumHeight = 48
             }
             tabBarView = tabBar
 
@@ -296,13 +313,24 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 android.widget.RelativeLayout.LayoutParams.MATCH_PARENT,
                 android.widget.RelativeLayout.LayoutParams.WRAP_CONTENT,
             )
-            params.addRule(android.widget.RelativeLayout.BELOW, R.id.search_container_all_apps)
+            params.addRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
 
             appsView.addView(tabBar, params)
-            android.widget.Toast.makeText(context, "Tab bar added to appsView", android.widget.Toast.LENGTH_SHORT).show()
+
+            // 52 dp is the tab bar content row height (nav bar inset is handled by AOSP separately).
+            tabBarHeightPx = (52 * resources.displayMetrics.density).toInt()
+            appsView.setDrawerPageBottomPadding(tabBarHeightPx)
+
+            // Read nav bar height once so the Compose spacer uses a static value.
+            // Dynamic windowInsetsBottomHeight re-triggers recomposition when appsView
+            // translates during the close gesture, causing a ghost double-image artifact.
+            val navBarInsetPx = ViewCompat.getRootWindowInsets(appsView)
+                ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+            val navBarPadding = (navBarInsetPx / resources.displayMetrics.density).dp
 
             val application = context.applicationContext as android.app.Application
             val viewModel = DrawerPageViewModel(application)
+            drawerPageViewModel = viewModel
 
             tabBar.setContent {
                 LawnchairTheme {
@@ -316,6 +344,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                         selectedPageId = selectedPageId,
                         isBulkSelectMode = isBulkSelect,
                         selectedCount = selectedApps.size,
+                        navBarPadding = navBarPadding,
                         onPageSelected = { pageId ->
                             viewModel.selectPage(pageId)
                             filterAppsByPage(pageId, pages)
@@ -330,23 +359,57 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                         onCreatePage = {
                             showCreatePageSheet(pages, viewModel)
                         },
+                        onAddApps = selectedPageId?.let { pageId ->
+                            { showAddAppsSheet(pageId, pages, viewModel) }
+                        },
                     )
                 }
             }
+
+            // Clear page filter when entering bulk select so all apps are visible for selection,
+            // then restore the filter when exiting.
+            viewModel.isBulkSelectMode
+                .onEach { inBulkSelect ->
+                    if (inBulkSelect) {
+                        mainApps.updateItemFilter(null)
+                    } else {
+                        filterAppsByPage(viewModel.selectedPageId.value, viewModel.pages.value)
+                    }
+                }
+                .launchIn(viewAttachedScope)
+
+            appsView.activeRecyclerView?.let { rv ->
+                bulkSelectController = DrawerBulkSelectController(context, rv, viewModel, viewAttachedScope)
+            }
         } catch (e: Exception) {
             android.util.Log.e("DrawerPages", "Failed to show tab bar", e)
-            android.widget.Toast.makeText(context, "Tab bar failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun hideTabBar() {
+        bulkSelectController?.detach()
+        bulkSelectController = null
+        drawerPageViewModel = null
+        if (tabBarHeightPx > 0) {
+            appsView.setDrawerPageBottomPadding(0)
+            tabBarHeightPx = 0
+        }
+        tabBarView?.let { view ->
+            if (view.parent is ViewGroup) {
+                (view.parent as ViewGroup).removeView(view)
+            }
+        }
+        tabBarView = null
     }
 
     private fun filterAppsByPage(pageId: Int?, pages: List<FolderInfo>) {
         if (pageId == null) {
-            apps.updateItemFilter(null)
+            mainApps.updateItemFilter(null)
             return
         }
         val page = pages.find { it.id == pageId } ?: return
         val pageAppKeys = page.getContents().mapNotNull { it.componentKey }.toSet()
-        apps.updateItemFilter { info ->
+        mainApps.updateItemFilter { info ->
             info is com.android.launcher3.model.data.AppInfo && info.toComponentKey() in pageAppKeys
         }
     }
@@ -400,6 +463,35 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 },
                 onSelectPage = { page ->
                     viewModel.moveAppsToPage(selectedApps, page.id)
+                    close(true)
+                },
+                onDismiss = { close(true) },
+            )
+        }
+    }
+
+    private fun showAddAppsSheet(
+        selectedPageId: Int,
+        pages: List<FolderInfo>,
+        viewModel: DrawerPageViewModel,
+    ) {
+        val page = pages.find { it.id == selectedPageId } ?: return
+        val pageTitle = page.title?.toString() ?: "Page"
+        val existingKeys = page.getContents().mapNotNull { it.componentKey }.toSet()
+
+        val appsStore = appsView.appsStore
+        val allApps = appsStore?.getApps() ?: return
+        val appList = allApps
+            .filter { it.componentKey != null && it.componentKey !in existingKeys }
+            .map { AppListItem(it.componentKey!!, it.title?.toString() ?: "Unknown") }
+            .sortedBy { it.label.lowercase() }
+
+        ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
+            AddAppsToPageSheet(
+                apps = appList,
+                pageTitle = pageTitle,
+                onConfirm = { selectedKeys ->
+                    viewModel.moveAppsToPage(selectedKeys, selectedPageId)
                     close(true)
                 },
                 onDismiss = { close(true) },
@@ -509,6 +601,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     override fun initializeSearch(appsView: ActivityAllAppsContainerView<*>) {
         apps = appsView.searchResultList as LawnchairAlphabeticalAppsList<*>
+        mainApps = appsView.personalAppList as LawnchairAlphabeticalAppsList<*>
         this.appsView = appsView
         val algorithm = LawnchairSearchAlgorithm.create(context)
         this.searchAlgorithm = algorithm
@@ -519,6 +612,10 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             this,
         )
         input.initialize(appsView)
+
+        if (prefs2.enableDrawerPages.firstBlocking()) {
+            showTabBar()
+        }
     }
 
     override fun resetSearch() {
@@ -570,9 +667,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     override fun setInsets(insets: Rect) {
         (layoutParams as MarginLayoutParams).apply {
             topMargin = if (isInvisible) {
-                insets.top - allAppsSearchVerticalOffset
+                insets.top - allAppsSearchVerticalOffset + drawerHandleAreaPx
             } else {
-                max(-allAppsSearchVerticalOffset, insets.top - qsbMarginTopAdjusting)
+                max(-allAppsSearchVerticalOffset, insets.top - qsbMarginTopAdjusting) + drawerHandleAreaPx
             }
         }
         requestLayout()

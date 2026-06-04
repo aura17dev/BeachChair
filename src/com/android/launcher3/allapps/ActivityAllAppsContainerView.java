@@ -189,6 +189,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     boolean showFastScroller;
     private boolean mRebindAdaptersAfterSearchAnimation;
     private int mNavBarScrimHeight = 0;
+    private int mDrawerPageBottomPadding = 0;
     public SearchRecyclerView mSearchRecyclerView;
     protected SearchAdapterProvider<?> mMainAdapterProvider;
     private View mBottomSheetHandleArea;
@@ -1385,6 +1386,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         }
     }
 
+    public void setDrawerPageBottomPadding(int padding) {
+        mDrawerPageBottomPadding = padding;
+        applyAdapterSideAndBottomPaddings(mActivityContext.getDeviceProfile());
+    }
+
     private void applyAdapterSideAndBottomPaddings(DeviceProfile grid) {
         int bottomPadding = Math.max(mInsets.bottom, mNavBarScrimHeight);
         mAH.forEach(adapterHolder -> {
@@ -1476,6 +1482,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     public AlphabeticalAppsList<T> getWorkAppList() {
         return mAH.get(WORK).mAppsList;
     }
+
 
     public FloatingHeaderView getFloatingHeaderView() {
         return mHeader;
@@ -1812,8 +1819,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
                 if (isSearchBarFloating()) {
                     bottomOffset += mSearchContainer.getHeight();
                 }
+                mRecyclerView.setClipToPadding(false);
                 mRecyclerView.setPadding(mPadding.left, mPadding.top, mPadding.right,
-                        mPadding.bottom + bottomOffset);
+                        mPadding.bottom + bottomOffset + mDrawerPageBottomPadding);
             }
         }
 

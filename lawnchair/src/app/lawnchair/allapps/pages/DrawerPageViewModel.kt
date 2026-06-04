@@ -74,11 +74,18 @@ class DrawerPageViewModel(
     }
 
     fun moveAppsToPage(appKeys: Set<ComponentKey>, targetPageId: Int) {
-        // Bulk move will be fully implemented when ItemInfo serialization is handled.
-        // For now, exit bulk-select and refresh so the UI stays consistent.
         viewModelScope.launch {
-            exitBulkSelectMode()
-            reloadHelper.reloadGrid()
+            try {
+                val page = pages.value.find { it.id == targetPageId } ?: return@launch
+                val existingKeys = page.getContents().mapNotNull { it.componentKey }.toSet()
+                val allKeys = existingKeys + appKeys
+                repository.updateFolderWithKeys(targetPageId, page.title?.toString() ?: "Page", allKeys)
+                _selectedPageId.value = targetPageId
+                exitBulkSelectMode()
+                reloadHelper.reloadGrid()
+            } catch (e: Exception) {
+                Log.e("DrawerPageVM", "Failed to move apps to page", e)
+            }
         }
     }
 

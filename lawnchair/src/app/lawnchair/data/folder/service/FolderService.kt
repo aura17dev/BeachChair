@@ -6,6 +6,7 @@ import android.util.Log
 import app.lawnchair.data.AppDatabase
 import app.lawnchair.data.Converters
 import app.lawnchair.data.folder.FolderInfoEntity
+import app.lawnchair.data.folder.FolderItemEntity
 import app.lawnchair.data.toEntity
 import com.android.launcher3.AppFilter
 import com.android.launcher3.dagger.ApplicationContext
@@ -14,6 +15,7 @@ import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.pm.UserCache
+import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.DaggerSingletonObject
 import com.android.launcher3.util.SafeCloseable
 import javax.inject.Inject
@@ -48,6 +50,15 @@ class FolderService @Inject constructor(
             appInfos.mapIndexed { index, appInfo ->
                 appInfo.toEntity(folderInfoId).copy(rank = index)
             }.toList(),
+        )
+    }
+
+    suspend fun updateFolderWithKeys(folderInfoId: Int, title: String, keys: Set<ComponentKey>) = withContext(Dispatchers.IO) {
+        folderDao.insertFolderWithItems(
+            FolderInfoEntity(id = folderInfoId, title = title),
+            keys.mapIndexed { index, key ->
+                FolderItemEntity(folderId = folderInfoId, rank = index, componentKey = key.toString())
+            },
         )
     }
 

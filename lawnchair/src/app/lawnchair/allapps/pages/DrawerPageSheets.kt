@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -25,6 +28,115 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.launcher3.model.data.FolderInfo
+import com.android.launcher3.util.ComponentKey
+
+data class AppListItem(
+    val key: ComponentKey,
+    val label: String,
+)
+
+@Composable
+fun AddAppsToPageSheet(
+    apps: List<AppListItem>,
+    pageTitle: String,
+    onConfirm: (Set<ComponentKey>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedKeys by remember { mutableStateOf<Set<ComponentKey>>(emptySet()) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredApps = if (searchQuery.isBlank()) {
+        apps
+    } else {
+        apps.filter { it.label.contains(searchQuery, ignoreCase = true) }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+    ) {
+        Text(
+            text = "Add apps to $pageTitle",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            label = { Text("Search apps") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp),
+        ) {
+            items(filteredApps) { app ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedKeys = if (app.key in selectedKeys) {
+                                selectedKeys - app.key
+                            } else {
+                                selectedKeys + app.key
+                            }
+                        }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = app.key in selectedKeys,
+                        onCheckedChange = {
+                            selectedKeys = if (app.key in selectedKeys) {
+                                selectedKeys - app.key
+                            } else {
+                                selectedKeys + app.key
+                            }
+                        },
+                    )
+                    Text(
+                        text = app.label,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            TextButton(
+                onClick = { onConfirm(selectedKeys) },
+                enabled = selectedKeys.isNotEmpty(),
+            ) {
+                Text("Add ${selectedKeys.size} apps")
+            }
+        }
+    }
+}
 
 @Composable
 fun CreatePageSheet(
