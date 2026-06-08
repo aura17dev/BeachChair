@@ -12,6 +12,7 @@ bin
 .gradle
 .kotlin
 local.properties
+local.defaults.properties
 build
 .DS_Store
 keystore.properties
