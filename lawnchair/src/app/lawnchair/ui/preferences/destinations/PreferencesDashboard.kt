@@ -78,6 +78,7 @@ import app.lawnchair.util.restartLauncher
 import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 
 @Composable
 fun PreferencesDashboard(
@@ -105,10 +106,7 @@ fun PreferencesDashboard(
     ) {
         AnnouncementPreference()
 
-        if (BuildConfig.APPLICATION_ID.contains("nightly") || BuildConfig.DEBUG) {
-            PreferencesDebugWarning()
-            Spacer(modifier = Modifier.height(8.dp))
-        }
+
 
         if (!context.isDefaultLauncher()) {
             PreferencesSetDefaultLauncherWarning()
@@ -141,7 +139,7 @@ fun PreferencesDashboard(
                 )
             }
 
-            val isSmartspaceEnabled = prefs2.enableSmartspace.firstBlocking()
+            val isSmartspaceEnabled = prefs2.enableSmartspace.firstBlockingCached()
             Item {
                 PreferenceCategory(
                     label = stringResource(id = R.string.smartspace_widget),

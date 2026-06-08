@@ -46,6 +46,7 @@ import com.android.launcher3.widget.NavigableAppWidgetHostView;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.FolderIconParent {
     static final String TAG = "ShortcutAndWidgetContainer";
@@ -87,7 +88,7 @@ public class ShortcutAndWidgetContainer extends ViewGroup implements FolderIcon.
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        boolean mAllowWidgetOverlap = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getAllowWidgetOverlap());
+        boolean mAllowWidgetOverlap = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getAllowWidgetOverlap());
         setClipChildren(!mAllowWidgetOverlap);
         setClipToPadding(!mAllowWidgetOverlap);
         setClipToOutline(!mAllowWidgetOverlap);

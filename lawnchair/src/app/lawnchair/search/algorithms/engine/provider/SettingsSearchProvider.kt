@@ -9,6 +9,7 @@ import app.lawnchair.search.algorithms.data.SettingInfo
 import app.lawnchair.search.algorithms.engine.SearchProvider
 import app.lawnchair.search.algorithms.engine.SearchResult
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import java.lang.reflect.Modifier
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,6 @@ object SettingsSearchProvider : SearchProvider {
         context: Context,
         query: String,
     ): Flow<List<SearchResult>> = flow {
-        // We get the preference manager instance when needed, using the passed context.
         val prefs = PreferenceManager.getInstance(context)
         val prefs2 = PreferenceManager2.getInstance(context)
 
@@ -33,8 +33,7 @@ object SettingsSearchProvider : SearchProvider {
             return@flow
         }
 
-        val maxResults = prefs2.maxSettingsEntryResultCount.firstBlocking()
-        val settingsInfoList = findSettingsByNameAndAction(query, maxResults)
+        val settingsInfoList = findSettingsByNameAndAction(query, prefs2)
 
         val searchResults = settingsInfoList.map { settingInfo ->
             SearchResult.Setting(data = settingInfo)
@@ -43,8 +42,36 @@ object SettingsSearchProvider : SearchProvider {
     }
 }
 
-private suspend fun findSettingsByNameAndAction(query: String, max: Int): List<SettingInfo> = try {
-    if (query.isBlank() || max <= 0) {
+@Volatile private var cachedFields: List<Pair<String, String>>? = null
+
+private fun getSettingsFields(): List<Pair<String, String>> {
+    var fields = cachedFields
+    if (fields == null) {
+        fields = try {
+            Settings::class.java.fields
+                .filter {
+                    it.type == String::class.java &&
+                        Modifier.isStatic(it.modifiers) &&
+                        it.name.startsWith("ACTION_")
+                }
+                .mapNotNull {
+                    try {
+                        it.name to it.get(null) as String
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+        } catch (e: Exception) {
+            Log.e("SettingSearch", "Failed to retrieve settings fields", e)
+            emptyList()
+        }
+        cachedFields = fields
+    }
+    return fields
+}
+
+private suspend fun findSettingsByNameAndAction(query: String, prefs2: PreferenceManager2): List<SettingInfo> = try {
+    if (query.isBlank()) {
         emptyList()
     } else {
         withContext(
@@ -52,14 +79,10 @@ private suspend fun findSettingsByNameAndAction(query: String, max: Int): List<S
                 Log.e("SettingSearch", "Something went wrong ", e)
             },
         ) {
-            Settings::class.java.fields
+            val max = prefs2.maxSettingsEntryResultCount.firstBlockingCached()
+            if (max <= 0) return@withContext emptyList()
+            getSettingsFields()
                 .asSequence()
-                .filter {
-                    it.type == String::class.java &&
-                        Modifier.isStatic(it.modifiers) &&
-                        it.name.startsWith("ACTION_")
-                }
-                .map { it.name to it.get(null) as String }
                 .filter { (name, action) ->
                     name.contains(query, ignoreCase = true) &&
                         !action.contains("REQUEST", ignoreCase = true) &&
@@ -73,7 +96,8 @@ private suspend fun findSettingsByNameAndAction(query: String, max: Int): List<S
                     val requiresUri = action.contains("URI")
                     SettingInfo(id, name, action, requiresUri)
                 }
-                .toList().take(max)
+                .take(max)
+                .toList()
         }
     }
 } catch (e: Exception) {

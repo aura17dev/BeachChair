@@ -83,6 +83,7 @@ import java.security.InvalidParameterException;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.LawnchairApp;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * Extension of {@link Cursor} with utility methods for workspace loading.
@@ -245,9 +246,7 @@ public class LoaderCursor extends CursorWrapper {
 
     public IconRequestInfo<WorkspaceItemInfo> createIconRequestInfo(
             WorkspaceItemInfo wai, boolean useLowResIcon) {
-        byte[] iconBlob = itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT || restoreFlag != 0
-                || (wai.isInactiveArchive() && Flags.restoreArchivedAppIconsFromDb())
-                ? getIconBlob() : null;
+        byte[] iconBlob = getIconBlob();
         return new IconRequestInfo<>(wai, mActivityInfo, iconBlob,
                 DESKTOP_ICON_FLAG.withUseLowRes(useLowResIcon));
     }
@@ -444,9 +443,12 @@ public class LoaderCursor extends CursorWrapper {
             mIconCache.getTitleAndIcon(info, mActivityInfo,
                     DEFAULT_LOOKUP_FLAG.withUseLowRes(useLowResIcon));
         } else if (loadIconFromCache && !info.isInactiveArchive()) {
+            boolean loadedFromDb = loadIconFromDb(info);
             mIconCache.getTitleAndIcon(info, mActivityInfo,
                     DEFAULT_LOOKUP_FLAG.withUseLowRes(useLowResIcon));
-            if (mIconCache.isDefaultIcon(info.bitmap, user)) {
+            if (loadedFromDb) {
+                loadIconFromDb(info);
+            } else if (mIconCache.isDefaultIcon(info.bitmap, user)) {
                 Log.d(TAG, "Default Icon found in cache, trying DB instead. "
                         + " Component=" + info.getTargetComponent());
                 loadIconFromDb(info);
@@ -646,7 +648,7 @@ public class LoaderCursor extends CursorWrapper {
 
         if (!mOccupied.containsKey(item.screenId)) {
             GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
-            if (item.screenId == Workspace.FIRST_SCREEN_ID && PreferenceExtensionsKt.firstBlocking(preferenceManager2.getEnableSmartspace())) {
+            if (item.screenId == Workspace.FIRST_SCREEN_ID && PreferenceManager2Kt.firstBlockingCached(preferenceManager2.getEnableSmartspace())) {
                 // Mark the first X columns (X is width of the search container) in the first row as
                 // occupied (if the feature is enabled) in order to account for the search
                 // container.
@@ -667,7 +669,7 @@ public class LoaderCursor extends CursorWrapper {
                     + " into cell (" + containerIndex + "-" + item.screenId + ":"
                     + item.cellX + "," + item.cellX + "," + item.spanX + "," + item.spanY
                     + ") already occupied");
-            return PreferenceExtensionsKt.firstBlocking(preferenceManager2.getAllowWidgetOverlap());
+            return PreferenceManager2Kt.firstBlockingCached(preferenceManager2.getAllowWidgetOverlap());
         }
     }
 

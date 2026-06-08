@@ -17,9 +17,10 @@ package com.android.launcher3.workprofile;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.drawable.RippleDrawable;
-import android.graphics.drawable.StateListDrawable;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -33,15 +34,19 @@ import com.android.launcher3.views.ActivityContext;
 
 import app.lawnchair.font.FontManager;
 import app.lawnchair.theme.color.tokens.ColorStateListTokens;
-import app.lawnchair.theme.drawable.DrawableTokens;
+import app.lawnchair.theme.color.tokens.ColorTokens;
 
 /**
  * Supports two indicator colors, dedicated for personal and work tabs.
+ * Lawnchair/BeachChair custom Material 3 Segmented Control implementation.
  */
 public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageIndicator {
     private final boolean mIsAlignOnIcon;
     private OnActivePageChangedListener mOnActivePageChangedListener;
     private int mLastActivePage = 0;
+    private float mScrollProgress = 0f;
+    private final Paint mContainerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mIndicatorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     public PersonalWorkSlidingTabStrip(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -50,9 +55,10 @@ public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageInd
         mIsAlignOnIcon = typedArray.getBoolean(
                 R.styleable.PersonalWorkSlidingTabStrip_alignOnIcon, false);
         typedArray.recycle();
+
+        setWillNotDraw(false);
     }
 
-    // Lawnchair: This function theme the work mode tab and toggle
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
@@ -61,10 +67,11 @@ public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageInd
         for (int i = 0; i < getChildCount(); i++) {
             Button tab = (Button) getChildAt(i);
             tab.setAllCaps(false);
-            // Lawnchair-TODO: StateListDrawable
-//            RippleDrawable background = (RippleDrawable) tab.getBackground();
-//            background.setDrawableByLayerId(android.R.id.mask, DrawableTokens.AllAppsTabsMaskDrawable.resolve(getContext()));
-            tab.setBackground(DrawableTokens.AllAppsTabsBackground.resolve(getContext()));
+
+            TypedValue outValue = new TypedValue();
+            getContext().getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true);
+            tab.setBackgroundResource(outValue.resourceId);
+
             tab.setTextColor(ColorStateListTokens.AllAppsTabText.resolve(getContext()));
             fontManager.setCustomFont(tab, R.id.font_body_medium);
         }
@@ -81,7 +88,21 @@ public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageInd
     }
 
     @Override
-    public void setScroll(int currentScroll, int totalScroll) {}
+    public void setScroll(int currentScroll, int totalScroll) {
+        if (totalScroll > 0) {
+            mScrollProgress = (float) currentScroll / totalScroll;
+        } else {
+            mScrollProgress = 0f;
+        }
+        if (mScrollProgress < 0f) mScrollProgress = 0f;
+        if (mScrollProgress > 1f) mScrollProgress = 1f;
+
+        // Dynamically select the tab based on scroll progress
+        int activePage = mScrollProgress < 0.5f ? 0 : 1;
+        updateTabTextColor(activePage);
+
+        invalidate();
+    }
 
     @Override
     public void setActiveMarker(int activePage) {
@@ -106,13 +127,58 @@ public class PersonalWorkSlidingTabStrip extends LinearLayout implements PageInd
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        if (mIsAlignOnIcon) {
-            // If any padding is not specified, restrict the width to emulate padding
-            int size = MeasureSpec.getSize(widthMeasureSpec);
-            size = getTabWidth(getContext(), size);
-            widthMeasureSpec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY);
+    protected void onDraw(Canvas canvas) {
+        int containerColor = ColorTokens.SurfaceContainerHighest.resolveColor(getContext());
+        int indicatorColor = ColorTokens.AllAppsTabBackgroundSelected.resolveColor(getContext());
+
+        mContainerPaint.setColor(containerColor);
+        mIndicatorPaint.setColor(indicatorColor);
+
+        float width = getWidth();
+        float height = getHeight();
+
+        float containerLeft = getPaddingLeft();
+        float containerTop = getPaddingTop();
+        float containerRight = width - getPaddingRight();
+        float containerBottom = height - getPaddingBottom();
+
+        float rx = (containerBottom - containerTop) / 2f;
+        float ry = rx;
+
+        canvas.drawRoundRect(containerLeft, containerTop, containerRight, containerBottom, rx, ry, mContainerPaint);
+
+        int count = getChildCount();
+        if (count > 0) {
+            float availableWidth = containerRight - containerLeft;
+            float tabWidth = availableWidth / count;
+
+            float left = containerLeft + mScrollProgress * (availableWidth - tabWidth);
+
+            float indicatorLeft = left;
+            float indicatorTop = containerTop;
+            float indicatorRight = left + tabWidth;
+            float indicatorBottom = containerBottom;
+
+            float indicatorRx = (indicatorBottom - indicatorTop) / 2f;
+            float indicatorRy = indicatorRx;
+
+            canvas.drawRoundRect(indicatorLeft, indicatorTop, indicatorRight, indicatorBottom, indicatorRx, indicatorRy, mIndicatorPaint);
         }
+
+        super.onDraw(canvas);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int size = MeasureSpec.getSize(widthMeasureSpec);
+        if (mIsAlignOnIcon) {
+            size = getTabWidth(getContext(), size);
+        }
+        int maxTabWidth = (int) (320 * getResources().getDisplayMetrics().density);
+        if (size > maxTabWidth) {
+            size = maxTabWidth;
+        }
+        widthMeasureSpec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY);
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 

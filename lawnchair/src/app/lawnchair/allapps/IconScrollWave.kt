@@ -19,7 +19,7 @@ package app.lawnchair.allapps
 import android.animation.ValueAnimator
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import androidx.recyclerview.widget.RecyclerView
 import com.android.launcher3.BubbleTextView
 import java.util.WeakHashMap
@@ -76,6 +76,22 @@ object IconScrollWave {
         }
     }
 
+    /**
+     * Cancels any in-flight settle animation, resets all icon scales to 1, and removes the
+     * listeners. Call this when the drawer closes so the settle animator can't fire against
+     * off-screen views.
+     */
+    fun uninstall(root: View) {
+        if (root is RecyclerView) {
+            installed.remove(root)?.detach(root)
+        }
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                uninstall(root.getChildAt(i))
+            }
+        }
+    }
+
     private class WaveListener(
         var enabled: () -> Boolean,
     ) : RecyclerView.OnScrollListener(), RecyclerView.OnChildAttachStateChangeListener {
@@ -83,6 +99,9 @@ object IconScrollWave {
         private var amplitude = 0f
         private var phaseTravel = 0f
         private var settleAnim: ValueAnimator? = null
+        /** Cached so onScrolled doesn't recompute on every frame and startSettle reuses it. */
+        private var cachedWavelength = 0f
+        private var density = 0f
 
         override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
             if (dy == 0) return
@@ -93,7 +112,7 @@ object IconScrollWave {
             settleAnim?.cancel()
             settleAnim = null
 
-            val density = rv.resources.displayMetrics.density
+            if (density == 0f) density = rv.resources.displayMetrics.density
             val wavelength = wavelengthPx(rv)
             // Phase travels in the scroll direction so the crest sweeps with the finger.
             phaseTravel += dy * (2.0 * PI / wavelength).toFloat() * TRAVEL_FACTOR
@@ -113,31 +132,37 @@ object IconScrollWave {
 
         private fun wavelengthPx(rv: RecyclerView): Float {
             val rowHeight = rv.getChildAt(0)?.height?.takeIf { it > 0 }
-                ?: (96f * rv.resources.displayMetrics.density).toInt()
-            return WAVELENGTH_ROWS * rowHeight
+            if (rowHeight != null && rowHeight > 0) {
+                cachedWavelength = WAVELENGTH_ROWS * rowHeight
+            } else if (cachedWavelength == 0f) {
+                if (density == 0f) density = rv.resources.displayMetrics.density
+                cachedWavelength = WAVELENGTH_ROWS * (96f * density)
+            }
+            return cachedWavelength
         }
 
         private fun applyWave(rv: RecyclerView, wavelength: Float) {
+            val waveConst = (2.0 * PI / wavelength).toFloat()
             for (i in 0 until rv.childCount) {
                 val icon = rv.getChildAt(i) as? BubbleTextView ?: continue
-                val centerY = icon.y + icon.height / 2f
-                val theta = 2.0 * PI * centerY / wavelength - phaseTravel
+                val centerY = icon.y + icon.height * 0.5f
+                val theta = (waveConst * centerY - phaseTravel).toDouble()
                 val bump = 0.5f + 0.5f * sin(theta).toFloat()
                 val scale = 1f + amplitude * bump
-                icon.pivotX = icon.width / 2f
-                icon.pivotY = icon.height / 2f
                 icon.scaleX = scale
                 icon.scaleY = scale
             }
         }
 
         private fun startSettle(rv: RecyclerView) {
-            val wavelength = wavelengthPx(rv)
+            val wavelength = if (cachedWavelength > 0f) cachedWavelength else wavelengthPx(rv)
             val start = amplitude
             settleAnim?.cancel()
             settleAnim = ValueAnimator.ofFloat(start, 0f).apply {
-                duration = 340
-                interpolator = DecelerateInterpolator()
+                duration = 420
+                // OvershootInterpolator lets amplitude dip slightly past zero before snapping
+                // back — produces a damped-spring feel rather than a mechanical deceleration.
+                interpolator = OvershootInterpolator(0.7f)
                 addUpdateListener {
                     amplitude = it.animatedValue as Float
                     applyWave(rv, wavelength)
@@ -162,7 +187,15 @@ object IconScrollWave {
             }
         }
 
-        // Reset any view leaving the screen so a recycled holder can't reappear mid-magnify.
+        fun detach(rv: RecyclerView) {
+            settleAnim?.cancel()
+            settleAnim = null
+            reset(rv)
+            rv.removeOnScrollListener(this)
+            rv.removeOnChildAttachStateChangeListener(this)
+        }
+
+        // The default Android View pivot is already the center — no explicit pivot writes needed.
         override fun onChildViewAttachedToWindow(view: View) = Unit
 
         override fun onChildViewDetachedFromWindow(view: View) {

@@ -192,6 +192,15 @@ fun HomeScreenPreferences(
         PreferenceGroup(heading = stringResource(id = R.string.popup_menu)) {
             Item { LauncherPopupPreferenceItem() }
         }
+        PreferenceGroup(heading = stringResource(id = R.string.navigation_bar_label)) {
+            Item {
+                SwitchPreference(
+                    adapter = prefs2.hideGestureBar.getAdapter(),
+                    label = stringResource(id = R.string.hide_gesture_bar_label),
+                    description = stringResource(id = R.string.hide_gesture_bar_description),
+                )
+            }
+        }
         val showStatusBarAdapter = prefs2.showStatusBar.getAdapter()
         PreferenceGroup(heading = stringResource(id = R.string.status_bar_label)) {
             Item {

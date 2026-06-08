@@ -3,8 +3,8 @@ package app.lawnchair.util
 import android.content.Context
 import app.lawnchair.flowerpot.Flowerpot
 import com.android.launcher3.model.data.AppInfo
-import com.android.launcher3.util.ApplicationInfoWrapper
-import com.android.launcher3.util.PackageManagerHelper
+import com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_SYSTEM_MASK
+import com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_SYSTEM_NO
 
 /**
  * Categorizes apps into System Apps, Google Apps, and Flowerpot categories.
@@ -23,12 +23,11 @@ fun categorizeAppsWithSystemAndGoogle(
 
     apps.forEach { app ->
         val packageName = app.targetPackage ?: return@forEach
-        val intent = app.intent
 
         // Check if it's a Google app first (Google apps can also be system apps)
         when {
             packageName.startsWith("com.google.") -> googleApps.add(app)
-            intent != null && ApplicationInfoWrapper(context, intent).isSystem() -> systemApps.add(app)
+            (app.runtimeStatusFlags and FLAG_SYSTEM_MASK) != 0 && (app.runtimeStatusFlags and FLAG_SYSTEM_NO) == 0 -> systemApps.add(app)
             else -> otherApps.add(app)
         }
     }

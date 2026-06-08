@@ -46,20 +46,28 @@ class DrawerPageViewModel(
         _selectedPageId.value = pageId
     }
 
-    fun createPage(title: String) {
+    fun createPage(title: String, icon: String?, iconOnly: Boolean, hideFromAll: Boolean) {
         viewModelScope.launch {
             val folderInfo = FolderInfo().apply {
                 this.title = title
+                this.icon = icon
+                this.iconOnly = iconOnly
+                this.hideFromAll = hideFromAll
             }
             repository.saveFolderInfo(folderInfo)
             reloadHelper.reloadGrid()
         }
     }
 
-    fun renamePage(pageId: Int, newTitle: String) {
+    fun renamePage(pageId: Int, newTitle: String, newIcon: String?, newIconOnly: Boolean, newHideFromAll: Boolean) {
         viewModelScope.launch {
             val page = pages.value.find { it.id == pageId } ?: return@launch
-            repository.updateFolderInfo(page.apply { title = newTitle })
+            repository.updateFolderInfo(page.apply {
+                title = newTitle
+                icon = newIcon
+                iconOnly = newIconOnly
+                hideFromAll = newHideFromAll
+            })
         }
     }
 
@@ -73,13 +81,21 @@ class DrawerPageViewModel(
         }
     }
 
+    fun wipePages() {
+        viewModelScope.launch {
+            _selectedPageId.value = null
+            exitBulkSelectMode()
+            repository.deleteAllFolders()
+        }
+    }
+
     fun moveAppsToPage(appKeys: Set<ComponentKey>, targetPageId: Int) {
         viewModelScope.launch {
             try {
                 val page = pages.value.find { it.id == targetPageId } ?: return@launch
                 val existingKeys = page.getContents().mapNotNull { it.componentKey }.toSet()
                 val allKeys = existingKeys + appKeys
-                repository.updateFolderWithKeys(targetPageId, page.title?.toString() ?: "Page", allKeys)
+                repository.updateFolderWithKeys(targetPageId, page.title?.toString() ?: "Page", page.icon, page.iconOnly, page.hideFromAll, allKeys)
                 _selectedPageId.value = targetPageId
                 exitBulkSelectMode()
                 reloadHelper.reloadGrid()

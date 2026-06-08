@@ -32,6 +32,7 @@ import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import java.util.List;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * Handles additional edit text functionality to better support folder name suggestion.
@@ -139,7 +140,7 @@ public class FolderNameEditText extends ExtendedEditText {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getLockHomeScreen())) return true;
+        if (PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getLockHomeScreen())) return true;
         return super.onTouchEvent(event);
     }
 }

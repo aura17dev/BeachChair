@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<app.lawnchair.allapps.views.SearchResultIcon xmlns:launcher="http://schemas.android.com/apk/res-auto"
+<app.lawnchair.allapps.views.SearchResultIcon xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:launcher="http://schemas.android.com/apk/res-auto"
     style="@style/BaseIcon.AllApps"
+    android:gravity="center_horizontal"
     launcher:centerVertically="true"
     launcher:iconDisplay="all_apps" />

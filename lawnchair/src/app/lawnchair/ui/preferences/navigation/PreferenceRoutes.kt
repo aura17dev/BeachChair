@@ -192,11 +192,15 @@ data object AboutLicenses : PreferenceRoute, PreferenceDeepLink {
 data class SelectIcon(
     // assuming componentKey is a ComponentKey.toString()
     val componentKey: String,
+    val shortcutId: Int = -1,
 ) : PreferenceRoute
 
 // default to empty
 @Serializable
-data class IconPicker(val packageName: String = "") : PreferenceRoute
+data class IconPicker(
+    val packageName: String = "",
+    val componentKey: String = "",
+) : PreferenceRoute
 
 @Serializable
 data class ColorSelection(val prefKey: String) : PreferenceRoute

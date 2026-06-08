@@ -24,8 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -36,8 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(
     backArrowVisible: Boolean,
@@ -82,12 +81,15 @@ fun TopBar(
             ),
         )
     } else {
-        LargeTopAppBar(
+        TopAppBar(
             modifier = modifier,
             title = {
                 Text(
                     text = label,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             },
             actions = {
@@ -107,7 +109,7 @@ fun TopBar(
             },
             scrollBehavior = scrollBehavior,
             colors = TopAppBarDefaults.topAppBarColors().copy(
-                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
         )
     }

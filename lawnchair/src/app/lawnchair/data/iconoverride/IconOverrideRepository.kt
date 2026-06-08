@@ -10,11 +10,11 @@ import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.DaggerSingletonObject
 import com.android.launcher3.util.SafeCloseable
-import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
@@ -26,36 +26,49 @@ class IconOverrideRepository @Inject constructor(
 
     private val scope = MainScope() + CoroutineName("IconOverrideRepository")
     private val dao = AppDatabase.INSTANCE.get(context).iconOverrideDao()
-    private var _overridesMap = mapOf<ComponentKey, IconPickerItem>()
+    @Volatile private var _overridesMap = mapOf<ComponentKey, IconPickerItem>()
     val overridesMap get() = _overridesMap
-
-    private val updatePackageQueue = ConcurrentLinkedQueue<ComponentKey>()
 
     init {
         scope.launch {
             dao.observeAll()
-                .flowOn(Dispatchers.Main)
+                .flowOn(Dispatchers.IO)
                 .collect { overrides ->
                     _overridesMap = overrides.associateBy(
                         keySelector = { it.target },
                         valueTransform = { it.iconPickerItem },
                     )
-                    while (updatePackageQueue.isNotEmpty()) {
-                        val target = updatePackageQueue.poll() ?: continue
-                        updatePackageIcons(target)
-                    }
                 }
         }
     }
 
     suspend fun setOverride(target: ComponentKey, item: IconPickerItem) {
-        dao.insert(IconOverride(target, item))
-        updatePackageQueue.offer(target)
+        // Update the in-memory map immediately so the icon provider sees the new override
+        // before MODEL_EXECUTOR runs updateIconsForPkg. Without this, the background thread
+        // reads a stale overridesMap and caches the old icon for all subsequent getTitleAndIcon calls.
+        val previous = _overridesMap
+        _overridesMap = _overridesMap + (target to item)
+        try {
+            dao.insert(IconOverride(target, item))
+        } catch (e: Exception) {
+            _overridesMap = previous
+            throw e
+        }
+        // Call directly — the old queue-based approach had a race where Room's InvalidationTracker
+        // could fire the Flow collector (draining an empty queue) before offer() was called.
+        updatePackageIcons(target)
     }
 
     suspend fun deleteOverride(target: ComponentKey) {
-        dao.delete(target)
-        updatePackageQueue.offer(target)
+        val previous = _overridesMap
+        _overridesMap = _overridesMap - target
+        try {
+            dao.delete(target)
+        } catch (e: Exception) {
+            _overridesMap = previous
+            throw e
+        }
+        updatePackageIcons(target)
     }
 
     fun observeTarget(target: ComponentKey) = dao.observeTarget(target)
@@ -64,17 +77,22 @@ class IconOverrideRepository @Inject constructor(
 
     suspend fun deleteAll() {
         dao.deleteAll()
-        LauncherAppState.getInstance(context).model.reloadIfActive()
+        val appState = LauncherAppState.getInstance(context)
+        appState.iconCache.clearAll()
+        appState.model.reloadIfActive()
     }
 
     private fun updatePackageIcons(target: ComponentKey) {
-        val model = LauncherAppState.INSTANCE.get(context).model
-
-        model.onPackageIconsUpdated(hashSetOf(target.componentName.packageName), target.user)
+        val appState = LauncherAppState.INSTANCE.get(context)
+        val model = appState.model
+        com.android.launcher3.util.Executors.MODEL_EXECUTOR.execute {
+            appState.iconCache.updateIconsForPkg(target.componentName.packageName, target.user)
+            model.onPackageIconsUpdated(hashSetOf(target.componentName.packageName), target.user)
+        }
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        scope.cancel()
     }
 
     companion object {

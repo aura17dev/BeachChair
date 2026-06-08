@@ -1183,8 +1183,9 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
             SettingsCache.INSTANCE.get(mPrimaryWindowContext)
                 .unregister(NAV_BAR_KIDS_MODE, mOnSettingsChangeListener);
         }
-        // Lawnchair-TODO: DesktopExperienceFlags.ENABLE_SYS_DECORS_CALLBACKS_VIA_WM.isTrue()
-        //                && DesktopExperienceFlags.ENABLE_DISPLAY_CONTENT_MODE_MANAGEMENT.isTrue()
+        // Desktop experience flags (ENABLE_SYS_DECORS_CALLBACKS_VIA_WM,
+        // ENABLE_DISPLAY_CONTENT_MODE_MANAGEMENT) are not yet available in this build.
+        // Switch to DesktopExperienceFlags once the flag API is wired up.
         if (false) {
             mDisplaysWithDecorationsRepositoryCompat.unregisterDisplayDecorationListener(this);
         } else {
@@ -1430,8 +1431,7 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
             return;
         }
 
-        DeviceProfile externalDeviceProfile = idp.createDeviceProfileForSecondaryDisplay(
-                displayContext);
+        DeviceProfile externalDeviceProfile = idp.getDeviceProfile(displayContext);
         mExternalDeviceProfiles.put(displayId, externalDeviceProfile);
     }
 

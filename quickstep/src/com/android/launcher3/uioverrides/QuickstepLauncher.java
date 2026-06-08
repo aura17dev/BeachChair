@@ -311,7 +311,8 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
 
     @Override
     protected void setupViews() {
-        // pE-TODO(CompatTier2): Android 9/10/11 support
+        // setOnViewCreationCallback was added in API 31 (Android S); on Android 9/10/11 widget
+        // interactions fall back to the default RemoteViews handling without Quickstep animation.
         if (ATLEAST_S) {
             getAppWidgetHolder().setOnViewCreationCallback(new QuickstepInteractionHandler(this));
         }

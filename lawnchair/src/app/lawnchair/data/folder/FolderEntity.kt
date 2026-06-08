@@ -1,4 +1,4 @@
-﻿package app.lawnchair.data.folder
+package app.lawnchair.data.folder
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
@@ -13,6 +13,9 @@ data class FolderInfoEntity(
     val hide: Boolean = false,
     val rank: Int = 0,
     val timestamp: Long = System.currentTimeMillis(),
+    val icon: String? = null,
+    val iconOnly: Boolean = false,
+    val hideFromAll: Boolean = false,
 )
 
 @Entity(

@@ -82,8 +82,9 @@ class LawnchairApp : LauncherApplication() {
                 "$currentBlacklist,clock"
             }
             Settings.Secure.putString(contentResolver, "icon_blacklist", newBlacklist)
-        } catch (_: Exception) {
-            // ignore
+        } catch (_: SecurityException) {
+            // WRITE_SECURE_SETTINGS is only granted to system/privileged apps; on user builds
+            // this will always throw. Hiding the clock icon is best-effort.
         }
     }
 
@@ -93,7 +94,8 @@ class LawnchairApp : LauncherApplication() {
             val currentBlacklist = Settings.Secure.getString(contentResolver, "icon_blacklist") ?: ""
             val newBlacklist = currentBlacklist.split(",").filter { it != "clock" }.joinToString(",")
             Settings.Secure.putString(contentResolver, "icon_blacklist", newBlacklist)
-        } catch (_: Exception) {
+        } catch (_: SecurityException) {
+            // Same WRITE_SECURE_SETTINGS restriction as above.
         }
     }
 

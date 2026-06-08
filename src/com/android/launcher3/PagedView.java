@@ -53,6 +53,7 @@ import android.widget.ScrollView;
 import androidx.annotation.Nullable;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.pageindicators.PageIndicator;
@@ -1423,7 +1424,7 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
                     // move to the left and fling to the right will register as a fling to the right.
 
                     boolean infiniteScroll = prefs.getInfiniteScrolling().get();
-                    boolean enableFeed = PreferenceExtensionsKt.firstBlocking(prefs2.getEnableFeed());
+                    boolean enableFeed = PreferenceManager2Kt.firstBlockingCached(prefs2.getEnableFeed());
 
                     if (((isSignificantMove && !isDeltaLeft && !isFling) ||
                             (isFling && !isVelocityLeft)) && mCurrentPage > 0) {

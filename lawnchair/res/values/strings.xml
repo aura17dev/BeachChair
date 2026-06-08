@@ -301,9 +301,11 @@
     <!-- Icon picker -->
     <string name="icon_picker_default_category">Icons</string>
     <string name="icon_picker_reset_to_default">Reset to default</string>
+    <string name="icon_picker_customizing_app">Customizing app</string>
     <string name="icon_pack_external_picker">Open external picker</string>
     <string name="pick_icon_from_label">Pick icon from</string>
     <string name="icon_picker_load_failed">Couldn\'t load more icons</string>
+    <string name="apply_icon_to">Apply icon to</string>
 
     <!-- Icon shapes  -->
     <string name="icon_shape_system">System</string>
@@ -709,6 +711,9 @@
 
     <string name="status_bar_label">Status bar</string>
     <string name="show_status_bar">Show status bar</string>
+    <string name="navigation_bar_label">Navigation bar</string>
+    <string name="hide_gesture_bar_label">Hide gesture bar</string>
+    <string name="hide_gesture_bar_description">Hides the navigation gesture indicator at the bottom of the screen</string>
     <string name="dark_status_bar_label">Dark status bar</string>
     <string name="status_bar_clock_label">Status bar clock</string>
     <string name="status_bar_clock_description">Dynamically hide status bar clock in first screen</string>
@@ -762,6 +767,7 @@
     <string name="paused_apps_drop_target_label">Pause app</string>
 
     <string name="dock_icons">Dock icons</string>
+    <string name="dock_rows">Dock rows</string>
     <string name="hotseat_bottom_space_label">Bottom padding</string>
     <string name="page_indicator_height">Page indicator height</string>
 
@@ -867,6 +873,7 @@
     <!-- Launcher strings used -->
     <string name="all_apps_device_search_hint">Search web and more</string>
     <string name="all_apps_search_bar_hint">Search apps</string>
+    <string name="all_apps_search_bar_hint_unfocused">Tap to search…</string>
     <string name="all_apps_no_search_results">No apps found matching \"<xliff:g example="Android" id="query">%1$s</xliff:g>\"</string>
 
     <string name="all_apps_search_result_suggestions">From the web</string>
@@ -1010,14 +1017,52 @@
     <string name="beach_animations_heading">Animations</string>
     <string name="beach_icon_bounce_label">Icon bounce</string>
     <string name="beach_icon_bounce_description">Icons gently bounce into place when opening the app drawer</string>
-    <string name="beach_icon_scroll_wave_label">Icon scroll wave</string>
-    <string name="beach_icon_scroll_wave_description">A magnifying wave ripples through the icons as you scroll the app drawer</string>
+    <string name="beach_home_morph_label">App close animation</string>
+    <string name="beach_home_morph_description">How an app settles back into its icon when you swipe home</string>
+    <string name="beach_home_morph_signature">Signature</string>
+    <string name="beach_home_morph_snappy">Snappy</string>
+    <string name="beach_home_morph_playful">Playful</string>
+    <string name="beach_home_morph_fast">Fast</string>
+    <string name="beach_drawer_scroll_animation_label">Scroll animation</string>
+    <string name="drawer_scroll_anim_none">None</string>
+    <string name="drawer_scroll_anim_none_desc">No scroll animation</string>
+    <string name="drawer_scroll_anim_wave">Wave</string>
+    <string name="drawer_scroll_anim_wave_desc">A magnifying sine wave ripples through icons as you scroll</string>
+    <string name="drawer_scroll_anim_edge_fade">Edge fade</string>
+    <string name="drawer_scroll_anim_edge_fade_desc">Icons near the top and bottom edges fade out, focusing attention on the center</string>
+    <string name="drawer_scroll_anim_tilt">Velocity tilt</string>
+    <string name="drawer_scroll_anim_tilt_desc">The drawer tilts in 3D with scroll speed and springs back flat when you stop</string>
+    <string name="drawer_scroll_anim_cascade">Cascade</string>
+    <string name="drawer_scroll_anim_cascade_desc">Rows slide in and fade as they scroll into view, like a waterfall</string>
+    <string name="drawer_scroll_anim_arc">Arc drift</string>
+    <string name="drawer_scroll_anim_arc_desc">Icons curve gently across the screen, bending the list into a flowing arc</string>
     <string name="beach_drawer_overshoot_label">Drawer overshoot</string>
     <string name="beach_drawer_overshoot_description">App drawer bounces past its resting position when opened</string>
     <string name="beach_pixelated_fade_label">Pixelated fade</string>
     <string name="beach_pixelated_fade_description">App drawer icons fade in with a retro stepped effect</string>
     <string name="beach_scale_bounce_label">Drawer scale bounce</string>
     <string name="beach_scale_bounce_description">App drawer scales up with a bounce when opened</string>
+    <string name="beach_drawer_page_swipe_fade_label">Page swipe fade</string>
+    <string name="beach_drawer_page_swipe_fade_description">App list fades out and back in when switching drawer pages</string>
+    <string name="beach_drawer_page_swipe_fade_duration_label">Fade duration</string>
     <string name="beach_drawer_pages_label">Drawer pages</string>
     <string name="beach_drawer_pages_description">Organize apps into named pages with tabs at the top of the app drawer</string>
+    <string name="apps_in_page_label">Show apps in pages only</string>
+    <string name="apps_in_page_description">Apps assigned to a page are removed from the All tab</string>
+    <string name="pages_heading">Pages</string>
+    <string name="create_page">Create page</string>
+    <string name="new_page_default_name">New page</string>
+    <string name="manage_page_apps">Manage apps</string>
+    <string name="drawer_page_menu_btn_desc">Page options</string>
+    <string name="drawer_page_menu_new_page">New page</string>
+    <string name="drawer_page_menu_add_apps">Add apps</string>
+    <string name="drawer_page_menu_select_apps">Select apps</string>
+    <string name="drawer_page_menu_ai_sort">AI Sort Apps</string>
+    <string name="drawer_page_menu_icon_style">Icon Style</string>
+    <string name="drawer_page_menu_wipe_pages">Clear All Pages</string>
+    <string name="drawer_page_menu_lawnchair_settings">Lawnchair settings</string>
+    <string name="drawer_page_menu_device_settings">Device settings</string>
+    <!-- Search History Deletion -->
+    <string name="search_history_delete_title">Delete suggestion?</string>
+    <string name="search_history_delete_message">Remove \"%1$s\" from your search history?</string>
 </resources>

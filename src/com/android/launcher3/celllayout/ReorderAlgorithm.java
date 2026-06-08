@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * Contains the logic of a reorder.
@@ -134,7 +135,7 @@ public class ReorderAlgorithm {
         Rect occupiedRect = new Rect(cellX, cellY, cellX + spanX, cellY + spanY);
 
         // Lawnchair: Widget overlap
-        if (PreferenceExtensionsKt.firstBlocking(mCellLayout.pref.getAllowWidgetOverlap())) {
+        if (PreferenceManager2Kt.firstBlockingCached(mCellLayout.pref.getAllowWidgetOverlap())) {
             solution.intersectingViews = new ArrayList<>(intersectingViews);
             return true;
         }

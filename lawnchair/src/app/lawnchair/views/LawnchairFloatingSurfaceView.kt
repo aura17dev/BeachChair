@@ -27,6 +27,8 @@ import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.launcher
+import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.preferences2.firstBlockingCached
 import com.android.app.animation.Interpolators
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.CellLayout
@@ -67,6 +69,7 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     private var mIcon: View? = null
     private var mIconBitmap: Bitmap? = null
     private var mContract: GestureNavContract? = null
+    private var mMorphAnim: HomeMorphAnimation = HomeMorphAnimation.SIGNATURE
 
     init {
         mSurfaceView.setLayerType(LAYER_TYPE_HARDWARE, null)
@@ -146,7 +149,7 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
             Consumer { view: View? ->
                 val scaleAnim =
                     ObjectAnimator.ofFloat<View?>(view, LauncherAnimUtils.SCALE_PROPERTY, *scales)
-                        .setDuration(CONTENT_SCALE_DURATION.toLong() * 3)
+                        .setDuration((CONTENT_SCALE_DURATION * mMorphAnim.contentDurationMult).toLong())
                 scaleAnim.interpolator = Interpolators.DECELERATE_1_5
                 launcherAnimator.play(scaleAnim)
             },
@@ -324,20 +327,21 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     }
 
     private fun bouncyIcon() {
-        mIcon ?: return
+        val icon = mIcon ?: return
 
+        val preset = mMorphAnim
         val (startX, startY) = mIconPosition.left to mIconPosition.top - ((height * 0.2f) / 3)
 
         listOf(
-            SpringAnimation(mIcon, DynamicAnimation.TRANSLATION_X, 1f).apply {
-                spring = SpringForce(1f).setStiffness(SpringForce.STIFFNESS_LOW)
-                    .setDampingRatio(SpringForce.DAMPING_RATIO_HIGH_BOUNCY)
-                setStartVelocity((mIconPosition.left - startX) * 2)
+            SpringAnimation(icon, DynamicAnimation.TRANSLATION_X, 1f).apply {
+                spring = SpringForce(1f).setStiffness(preset.stiffness)
+                    .setDampingRatio(preset.dampingRatio)
+                setStartVelocity((mIconPosition.left - startX) * 2 * preset.velocityScale)
             },
-            SpringAnimation(mIcon, DynamicAnimation.TRANSLATION_Y, 1f).apply {
-                spring = SpringForce(1f).setStiffness(SpringForce.STIFFNESS_LOW)
-                    .setDampingRatio(SpringForce.DAMPING_RATIO_HIGH_BOUNCY)
-                setStartVelocity((mIconPosition.top - startY) * 3)
+            SpringAnimation(icon, DynamicAnimation.TRANSLATION_Y, 1f).apply {
+                spring = SpringForce(1f).setStiffness(preset.stiffness)
+                    .setDampingRatio(preset.dampingRatio)
+                setStartVelocity((mIconPosition.top - startY) * 3 * preset.velocityScale)
             },
         ).forEach { it.start() }
     }
@@ -404,6 +408,8 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
                 )
             view.mContract = contract
             view.mIsOpen = true
+            view.mMorphAnim = PreferenceManager2.getInstance(launcher)
+                .homeMorphAnimation.firstBlockingCached()
 
             val anim = AnimatorSet()
             val startDelay = launcher.getSingleFrameMs()

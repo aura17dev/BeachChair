@@ -56,6 +56,7 @@ import com.android.launcher3.widget.LauncherAppWidgetProviderInfo;
 import com.android.launcher3.widget.WidgetManagerHelper;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -400,7 +401,7 @@ public class GridSizeMigrationDBController {
             @NonNull final List<DbEntry> sortedItemsToPlace, List<Integer> idsInUse, Context context) {
         PreferenceManager2 prefs2 = PreferenceManager2.INSTANCE.get(context);
         
-        boolean smartspaceEnabled = PreferenceExtensionsKt.firstBlocking(prefs2.getEnableSmartspace());
+        boolean smartspaceEnabled = PreferenceManager2Kt.firstBlockingCached(prefs2.getEnableSmartspace());
         
         final GridOccupancy occupied = new GridOccupancy(trgX, trgY);
         final Point trg = new Point(trgX, trgY);

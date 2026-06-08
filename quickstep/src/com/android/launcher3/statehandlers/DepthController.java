@@ -47,6 +47,7 @@ import java.util.function.Consumer;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.compat.LawnchairQuickstepCompat;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * Controls blur and wallpaper zoom, for the Launcher surface only.
@@ -75,7 +76,7 @@ public class DepthController extends BaseDepthController implements StateHandler
     public DepthController(QuickstepLauncher launcher) {
         super(launcher);
         var pref = PreferenceManager2.getInstance(launcher).getWallpaperDepthEffect();
-        mEnableDepth = PreferenceExtensionsKt.firstBlocking(pref);
+        mEnableDepth = PreferenceManager2Kt.firstBlockingCached(pref);
     }
 
     private void onLauncherDraw() {

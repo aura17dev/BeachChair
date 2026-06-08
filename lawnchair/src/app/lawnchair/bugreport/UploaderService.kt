@@ -27,9 +27,7 @@ class UploaderService : Service() {
     private val scope = CoroutineScope(Dispatchers.IO) + CoroutineName("UploaderService")
     private val uploadQueue: Queue<BugReport> = LinkedList()
 
-    override fun onBind(intent: Intent): IBinder {
-        TODO("not implemented")
-    }
+    override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) return START_REDELIVER_INTENT
@@ -45,11 +43,11 @@ class UploaderService : Service() {
 
     private suspend fun startUpload() {
         while (uploadQueue.isNotEmpty()) {
-            var report = uploadQueue.poll()!!
+            var report = uploadQueue.poll() ?: break
             try {
                 report = report.copy(link = UploaderUtils.upload(report))
             } catch (e: Throwable) {
-                Log.d("UploaderService", "failed to upload bug report", e)
+                Log.e("UploaderService", "failed to upload bug report", e)
                 report = report.copy(uploadError = true)
             } finally {
                 sendBroadcast(
@@ -63,8 +61,6 @@ class UploaderService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-
-        Log.d("DUS", "onCreate")
 
         val notificationManager: NotificationManager = requireSystemService()
         notificationManager.createNotificationChannel(

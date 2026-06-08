@@ -13,6 +13,7 @@ import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.R
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 
 object DrawableTokens {
 
@@ -20,7 +21,6 @@ object DrawableTokens {
     val BgCellLayout = ResourceDrawableToken<Drawable>(R.drawable.bg_celllayout)
         .setTint(ColorTokens.ColorAccent)
 
-    // pE-TODO(QPR1): Investigate
     @JvmField
     val BgOverviewClearAllButton = ResourceDrawableToken<RippleDrawable>(R.drawable.overview_action_button_background)
         .mutate { context, scheme, uiColorMode ->
@@ -163,7 +163,7 @@ object DrawableTokens {
 
         // Get custom color from preferences
         val prefs2 = PreferenceManager2.getInstance(context)
-        val colorOption = prefs2.workProfileTabBackgroundColor.firstBlocking()
+        val colorOption = prefs2.workProfileTabBackgroundColor.firstBlockingCached()
         val customColor = colorOption.colorPreferenceEntry.lightColor.invoke(context)
 
         val selectedColor = if (customColor != 0) {

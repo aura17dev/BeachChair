@@ -88,8 +88,6 @@ import com.android.launcher3.celllayout.CellLayoutLayoutParams;
 import com.android.launcher3.celllayout.CellPosMapper;
 import com.android.launcher3.celllayout.CellPosMapper.CellPos;
 import com.android.launcher3.config.FeatureFlags;
-import com.android.launcher3.debug.TestEventEmitter;
-import com.android.launcher3.debug.TestEventEmitter.TestEvent;
 import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.dragndrop.DragOptions;
@@ -146,6 +144,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import static app.lawnchair.util.LawnchairUtilsKt.toBitmap;
 import app.lawnchair.LawnchairApp;
 import app.lawnchair.LawnchairAppKt;
@@ -611,7 +610,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
     }
 
     public void updateStatusbarClock() {
-        if (mCurrentPage == 0 && PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getStatusBarClock())) {
+        if (mCurrentPage == 0 && PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getStatusBarClock())) {
             LawnchairAppKt.getLawnchairApp(mLauncher).hideClockInStatusBar();
         } else {
             LawnchairAppKt.getLawnchairApp(mLauncher).restoreClockInStatusBar();
@@ -661,13 +660,13 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
     public void bindAndInitFirstWorkspaceScreen() {
         // Add the first page
         CellLayout firstPage = insertNewWorkspaceScreen(Workspace.FIRST_SCREEN_ID, getChildCount());
-        if (!PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getEnableSmartspace())) {
+        if (!PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getEnableSmartspace())) {
             mFirstPagePinnedItem = null;
             return;
         }
         if (mFirstPagePinnedItem == null) {
-            SmartspaceMode smartspaceMode = PreferenceExtensionsKt
-                .firstBlocking(mPreferenceManager2.getSmartspaceMode());
+            SmartspaceMode smartspaceMode = PreferenceManager2Kt
+                .firstBlockingCached(mPreferenceManager2.getSmartspaceMode());
             if (!smartspaceMode.isAvailable(this.mLauncher)) {
                 // The current smartspace mode is not available,
                 // setting the smartspace mode to one that is always available
@@ -1112,7 +1111,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                     id, persistedScreenIds, isExtraEmptyScreen(id))) {
                 continue;
             }
-            if ((!PreferenceExtensionsKt.firstBlocking(PreferenceManager2.INSTANCE.get(getContext()).getEnableSmartspace()) || id > FIRST_SCREEN_ID)
+            if ((!PreferenceManager2Kt.firstBlockingCached(PreferenceManager2.INSTANCE.get(getContext()).getEnableSmartspace()) || id > FIRST_SCREEN_ID)
                     && cl.getShortcutsAndWidgets().getChildCount() == 0) {
                 removeScreens.add(id);
             }
@@ -1173,7 +1172,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         updateAccessibilityViewPageDescription();
 
         // Reset default home page if it's now out of range after page removal
-        int storedDefault = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getDefaultHomePage());
+        int storedDefault = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getDefaultHomePage());
         if (storedDefault >= getChildCount()) {
             setDefaultPage(DEFAULT_PAGE);
         }
@@ -1185,10 +1184,9 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
      */
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
-        // pE-TODO(Reimpl): Check Icon Swipe Gesture
         if (ev.getAction() == MotionEvent.ACTION_UP) {
             View touchedView = findViewAtPosition(ev.getX(), ev.getY());
-            Boolean iconSwipeGestures = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getIconSwipeGestures());
+            Boolean iconSwipeGestures = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getIconSwipeGestures());
 
             if (iconSwipeGestures && touchedView instanceof ShortcutAndWidgetContainer container) {
                 container.onTouchEvent(ev);
@@ -1454,7 +1452,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
     public void showPageIndicatorAtCurrentScroll() {
         if (mPageIndicator != null) {
             mPageIndicator.setScroll(getScrollX(), computeMaxScroll());
-            var isHotseatEnabled = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.isHotseatEnabled());
+            var isHotseatEnabled = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.isHotseatEnabled());
             mPageIndicator.setVisibility(isHotseatEnabled ? VISIBLE : INVISIBLE);
         }
     }
@@ -1900,7 +1898,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
             }
         }
 
-        boolean lockHomeScreen = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getLockHomeScreen());
+        boolean lockHomeScreen = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getLockHomeScreen());
         if (lockHomeScreen) {
             child.setVisibility(View.VISIBLE);
 
@@ -2186,7 +2184,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         boolean snappedToNewPage = false;
         boolean resizeOnDrop = false;
         Runnable onCompleteRunnable = null;
-        boolean forceWidgetResize = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getForceWidgetResize());
+        boolean forceWidgetResize = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getForceWidgetResize());
         if (d.dragSource != this || mDragInfo == null) {
             final int[] touchXY = new int[]{(int) mDragViewVisualCenter[0],
                     (int) mDragViewVisualCenter[1]};
@@ -2407,7 +2405,6 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         if (d.stateAnnouncer != null && !droppedOnOriginalCell) {
             d.stateAnnouncer.completeAction(R.string.item_moved);
         }
-        TestEventEmitter.sendEvent(TestEvent.WORKSPACE_ON_DROP);
     }
 
     @Nullable
@@ -3822,7 +3819,7 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
      * Falls back to {@link #DEFAULT_PAGE} if the stored page is out of range.
      */
     public int getDefaultPage() {
-        int storedPage = PreferenceExtensionsKt.firstBlocking(mPreferenceManager2.getDefaultHomePage());
+        int storedPage = PreferenceManager2Kt.firstBlockingCached(mPreferenceManager2.getDefaultHomePage());
         int pageCount = getChildCount();
         if (storedPage >= 0 && storedPage < pageCount) {
             return storedPage;

@@ -30,5 +30,6 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="@dimen/bottom_sheet_handle_margin"
         android:layout_marginBottom="@dimen/bottom_sheet_handle_margin"
-        android:background="@drawable/bg_rounded_corner_bottom_sheet_handle" />
+        android:background="@drawable/bg_rounded_corner_bottom_sheet_handle"
+        android:visibility="gone" />
 </FrameLayout>

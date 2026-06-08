@@ -94,7 +94,13 @@ import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.ItemInfoWithIcon;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
+import com.android.launcher3.model.data.FolderInfo;
+import com.android.launcher3.popup.BubbleTextViewPopupController;
+import com.android.launcher3.popup.Poppable;
 import com.android.launcher3.popup.PopupContainerWithArrow;
+import com.android.launcher3.popup.PopupController;
+import com.android.launcher3.popup.PopupDataRepository;
+import com.android.launcher3.popup.PoppableType;
 import com.android.launcher3.search.StringMatcherUtility;
 import com.android.launcher3.util.CancellableTask;
 import com.android.launcher3.util.IntArray;
@@ -112,6 +118,7 @@ import java.util.Objects;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.LawnchairApp;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import app.lawnchair.font.FontManager;
 import app.lawnchair.gestures.IconGestureListener;
 import app.lawnchair.preferences.PreferenceManager;
@@ -124,9 +131,11 @@ import app.lawnchair.util.LawnchairUtilsKt;
  * too aggressive.
  */
 public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
-        FloatingIconViewCompanion, DraggableView, Reorderable {
+        FloatingIconViewCompanion, DraggableView, Reorderable, Poppable {
 
     public static final String TAG = "BubbleTextView";
+
+    @Nullable private PopupController mPopupController;
 
     public static final int DISPLAY_WORKSPACE = 0;
     public static final int DISPLAY_ALL_APPS = 1;
@@ -221,6 +230,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     private final int mRunningAppIndicatorHeight;
     private final int mRunningAppIndicatorTopMargin;
     private final Paint mRunningAppIndicatorPaint;
+    private final int mAppTitlePillHorizontalPadding;
+    private final int mAppTitlePillRoundRectPadding;
+    private final Rect mTmpDrawingRect = new Rect();
+    private final Paint.FontMetrics mTmpFontMetrics = new Paint.FontMetrics();
+    private final RectF mAppTitleBoundsRectF = new RectF();
     private final Rect mRunningAppIconBounds = new Rect();
     private RunningAppState mRunningAppState;
 
@@ -253,6 +267,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     private boolean mHighResUpdateInProgress = false;
 
     private final PreferenceManager2 pref2;
+    private final PillColorProvider mPillColorProvider;
     private IconGestureListener mGestureListener;
 
     public BubbleTextView(Context context) {
@@ -267,6 +282,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         super(context, attrs, defStyle);
         mActivity = ActivityContext.lookupContext(context);
         pref2 = PreferenceManager2.getInstance(context);
+        mPillColorProvider = PillColorProvider.getInstance(context);
         mMinimizedStateDescription = getContext().getString(
                 R.string.app_minimized_state_description);
         mRunningStateDescription = getContext().getString(R.string.app_running_state_description);
@@ -323,6 +339,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
                 getResources().getDimensionPixelSize(
                         R.dimen.taskbar_running_app_indicator_top_margin);
         mRunningAppIndicatorPaint = new Paint();
+        mAppTitlePillHorizontalPadding =
+                getResources().getDimensionPixelSize(R.dimen.app_title_pill_horizontal_padding);
+        mAppTitlePillRoundRectPadding =
+                getResources().getDimensionPixelSize(R.dimen.app_title_pill_round_rect_padding);
 
         mLongPressHelper = new CheckLongPressHelper(this);
 
@@ -857,36 +877,28 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     /** Draws a background behind the App Title label when required. **/
     public void drawAppContrastTile(Canvas canvas) {
-        RectF appTitleBounds;
-        Paint.FontMetrics fm = getPaint().getFontMetrics();
-        Rect tmpRect = new Rect();
-        getDrawingRect(tmpRect);
+        getPaint().getFontMetrics(mTmpFontMetrics);
+        getDrawingRect(mTmpDrawingRect);
         CharSequence text = getText();
 
-        int mAppTitleHorizontalPadding = getResources().getDimensionPixelSize(
-                R.dimen.app_title_pill_horizontal_padding);
-        int mRoundRectPadding = getResources().getDimensionPixelSize(
-                R.dimen.app_title_pill_round_rect_padding);
-
         float titleLength = (getPaint().measureText(text, 0, text.length())
-                + (mAppTitleHorizontalPadding + mRoundRectPadding) * 2);
-        titleLength = Math.min(titleLength, tmpRect.width());
-        appTitleBounds = new RectF((tmpRect.width() - titleLength) / 2.f - getCompoundPaddingLeft(),
-                0, (tmpRect.width() + titleLength) / 2.f + getCompoundPaddingRight(),
-                (int) Math.ceil(fm.bottom - fm.top));
-        appTitleBounds.inset((mAppTitleHorizontalPadding) * 2, 0);
-
+                + (mAppTitlePillHorizontalPadding + mAppTitlePillRoundRectPadding) * 2);
+        titleLength = Math.min(titleLength, mTmpDrawingRect.width());
+        mAppTitleBoundsRectF.set(
+                (mTmpDrawingRect.width() - titleLength) / 2.f - getCompoundPaddingLeft(),
+                0,
+                (mTmpDrawingRect.width() + titleLength) / 2.f + getCompoundPaddingRight(),
+                (int) Math.ceil(mTmpFontMetrics.bottom - mTmpFontMetrics.top));
+        mAppTitleBoundsRectF.inset(mAppTitlePillHorizontalPadding * 2, 0);
 
         if (mIcon != null) {
-            Rect iconBounds = new Rect();
-            getIconBounds(iconBounds);
-            int textStart = iconBounds.bottom + getCompoundDrawablePadding();
-            appTitleBounds.offset(0, textStart);
+            getIconBounds(mTmpDrawingRect);
+            mAppTitleBoundsRectF.offset(0, mTmpDrawingRect.bottom + getCompoundDrawablePadding());
         }
 
-        canvas.drawRoundRect(appTitleBounds, appTitleBounds.height() / 2,
-                appTitleBounds.height() / 2,
-                PillColorProvider.getInstance(getContext()).getAppTitlePillPaint());
+        canvas.drawRoundRect(mAppTitleBoundsRectF, mAppTitleBoundsRectF.height() / 2,
+                mAppTitleBoundsRectF.height() / 2,
+                mPillColorProvider.getAppTitlePillPaint());
     }
 
     /** Draws a line under the app icon if this is representing a running app in Desktop Mode. */
@@ -994,13 +1006,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
                     getPaddingBottom());
         }
         if (shouldDrawAppContrastTile()) {
-            int mAppTitleHorizontalPadding = getResources().getDimensionPixelSize(
-                    R.dimen.app_title_pill_horizontal_padding);
-            int mRoundRectPadding = getResources().getDimensionPixelSize(
-                    R.dimen.app_title_pill_round_rect_padding);
-
-            setPadding(mAppTitleHorizontalPadding + mRoundRectPadding, getPaddingTop(),
-                    mAppTitleHorizontalPadding + mRoundRectPadding,
+            setPadding(mAppTitlePillHorizontalPadding + mAppTitlePillRoundRectPadding, getPaddingTop(),
+                    mAppTitlePillHorizontalPadding + mAppTitlePillRoundRectPadding,
                     getPaddingBottom());
         }
         // Only apply two line for all_apps and device search only if necessary.
@@ -1087,8 +1094,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     @Override
     public void setTextColor(ColorStateList colors) {
         if (shouldDrawAppContrastTile()) {
-            mTextColor = PillColorProvider.getInstance(
-                    getContext()).getAppTitleTextPaint().getColor();
+            mTextColor = mPillColorProvider.getAppTitleTextPaint().getColor();
         } else {
             mTextColor = colors.getDefaultColor();
             mTextColorStateList = colors;
@@ -1107,7 +1113,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         ItemInfo info = tag instanceof ItemInfo ? (ItemInfo) tag : null;
         return info == null || info.container != LauncherSettings.Favorites.CONTAINER_HOTSEAT
                 && info.container != LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION
-                || PreferenceExtensionsKt.firstBlocking(pref2.getEnableLabelInDock());
+                || PreferenceManager2Kt.firstBlockingCached(pref2.getEnableLabelInDock());
     }
 
     /**
@@ -1115,7 +1121,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      **/
     public boolean shouldDrawAppContrastTile() {
         return mDisplay == DISPLAY_WORKSPACE && shouldTextBeVisible()
-                && PillColorProvider.getInstance(getContext()).isMatchaEnabled()
+                && mPillColorProvider != null && mPillColorProvider.isMatchaEnabled()
                 && enableContrastTiles();
     }
 
@@ -1543,8 +1549,17 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      * Starts a long press action and returns the corresponding pre-drag condition
      */
     public PreDragCondition startLongPressAction() {
-        PopupContainerWithArrow popup = PopupContainerWithArrow.showForIcon(this);
-        return popup != null ? popup.createPreDragCondition(true) : null;
+        PopupController controller = getPopupController();
+        if (controller == null) {
+            controller = new BubbleTextViewPopupController(this);
+            setPopupController(controller);
+        }
+        ItemInfo itemInfo = getTag() instanceof ItemInfo ? (ItemInfo) getTag() : null;
+        PopupDataRepository repo = itemInfo != null
+                ? PopupDataRepository.createRepository(itemInfo)
+                : PopupDataRepository.createRepository();
+        com.android.launcher3.popup.Popup popup = controller.show(repo);
+        return popup != null ? popup.createPreDragCondition() : null;
     }
 
     /**
@@ -1552,5 +1567,24 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
      */
     public boolean canShowLongPressPopup() {
         return getTag() instanceof ItemInfo && ShortcutUtil.supportsShortcuts((ItemInfo) getTag());
+    }
+
+    // --- Poppable ---
+
+    @Override
+    @Nullable
+    public PopupController getPopupController() {
+        return mPopupController;
+    }
+
+    @Override
+    public void setPopupController(@NonNull PopupController popupController) {
+        mPopupController = popupController;
+    }
+
+    @Override
+    @NonNull
+    public PoppableType getPoppableType() {
+        return getTag() instanceof FolderInfo ? PoppableType.FOLDER : PoppableType.APP;
     }
 }

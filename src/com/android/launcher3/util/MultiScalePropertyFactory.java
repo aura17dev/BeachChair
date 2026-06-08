@@ -74,6 +74,16 @@ public class MultiScalePropertyFactory<T extends View> {
 
         @Override
         public void setValue(T obj, float newValue) {
+            // Reject NaN at entry: it would corrupt mValue and propagate into every subsequent
+            // aggregation through mMultiplicationOfOthers, causing silent animation glitches.
+            // NaN can originate from certain interpolators at their boundary conditions on older
+            // devices; skipping here is safer than letting it poison the cached state.
+            if (Float.isNaN(newValue)) {
+                if (DEBUG) {
+                    Log.w(TAG, "Skipping setValue because newValue is NaN");
+                }
+                return;
+            }
             if (mLastIndexSet != mInx) {
                 mMinOfOthers = Float.MAX_VALUE;
                 mMaxOfOthers = Float.MIN_VALUE;
@@ -92,13 +102,6 @@ public class MultiScalePropertyFactory<T extends View> {
             float multValue = mMultiplicationOfOthers * newValue;
             mLastAggregatedValue = Utilities.boundToRange(multValue, minValue, maxValue);
             mValue = newValue;
-            if (Float.isNaN(mLastAggregatedValue)) {
-                // pE-TODO(CompatTier2/CompatTier3): Why are you NaN
-                if (DEBUG) {
-                    Log.w(TAG, "Skipping setValue because newValue is NaN");
-                }
-                return;
-            }
             apply(obj, mLastAggregatedValue);
 
             if (DEBUG) {

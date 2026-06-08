@@ -56,6 +56,7 @@ import java.util.List;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import app.lawnchair.theme.color.tokens.ColorTokens;
 import app.lawnchair.theme.drawable.DrawableTokens;
 
@@ -220,8 +221,8 @@ public class AppWidgetResizeFrame extends AbstractFloatingView implements View.O
 
     public static void showForWidget(LauncherAppWidgetHostView widget, CellLayout cellLayout) {
         PreferenceManager2 pref2 = PreferenceManager2.getInstance(widget.getContext());
-        boolean force = PreferenceExtensionsKt.firstBlocking(pref2.getForceWidgetResize());
-        boolean unlimited = PreferenceExtensionsKt.firstBlocking(pref2.getWidgetUnlimitedSize());
+        boolean force = PreferenceManager2Kt.firstBlockingCached(pref2.getForceWidgetResize());
+        boolean unlimited = PreferenceManager2Kt.firstBlockingCached(pref2.getWidgetUnlimitedSize());
 
         // If widget is not added to view hierarchy, we cannot show resize frame at correct location
         if (widget.getParent() == null) {

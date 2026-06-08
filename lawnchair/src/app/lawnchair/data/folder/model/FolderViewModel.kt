@@ -1,4 +1,4 @@
-﻿package app.lawnchair.data.folder.model
+package app.lawnchair.data.folder.model
 
 import android.app.Application
 import android.util.Log
@@ -53,13 +53,17 @@ class FolderViewModel(
     fun renameFolder(folderInfo: FolderInfo, hide: Boolean) {
         viewModelScope.launch {
             repository.updateFolderInfo(folderInfo, hide)
+            reloadHelper.reloadGrid()
         }
-        reloadHelper.reloadGrid()
     }
 
     fun updateFolderItems(id: Int, title: String, appInfo: List<AppInfo>) {
         viewModelScope.launch {
-            repository.updateFolderWithItems(id, title, appInfo)
+            val existingFolder = folders.value.find { it.id == id }
+            val existingIcon = existingFolder?.icon
+            val existingIconOnly = existingFolder?.iconOnly ?: false
+            val existingHideFromAll = existingFolder?.hideFromAll ?: false
+            repository.updateFolderWithItems(id, title, existingIcon, existingIconOnly, existingHideFromAll, appInfo)
             // Update the local state flow so UI can observe changes without full reload if needed,
             // though for now we just rely on reloadGrid to refresh the launcher.
             // We call reloadGrid *after* the DB update is complete.
@@ -77,8 +81,8 @@ class FolderViewModel(
     fun deleteFolder(id: Int) {
         viewModelScope.launch {
             repository.deleteFolderInfo(id)
+            reloadHelper.reloadGrid()
         }
-        reloadHelper.reloadGrid()
     }
 }
 

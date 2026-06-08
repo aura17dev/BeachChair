@@ -114,6 +114,7 @@ import java.util.stream.Stream;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import static com.topjohnwu.superuser.internal.Utils.context;
 import app.lawnchair.allapps.LawnchairAlphabeticalAppsList;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import app.lawnchair.font.FontManager;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
@@ -284,7 +285,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      *   onFinishInflate -> onPostCreate
      */
     protected void initContent() {
-        showFastScroller = PreferenceExtensionsKt.firstBlocking(pref2.getShowScrollbar());
+        showFastScroller = PreferenceManager2Kt.firstBlockingCached(pref2.getShowScrollbar());
 
         mMainAdapterProvider = mSearchUiDelegate.createMainAdapterProvider();
 
@@ -544,7 +545,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
      */
     public void reset(boolean animate, boolean exitSearch) {
         // Scroll Main and Work RV to top. Search RV is done in `resetSearch`.
-        if (!PreferenceExtensionsKt.firstBlocking(pref2.getRememberPosition())) {
+        if (!PreferenceManager2Kt.firstBlockingCached(pref2.getRememberPosition())) {
             for (int i = 0; i < mAH.size(); i++) {
                 if (i != SEARCH && mAH.get(i).mRecyclerView != null) {
                     mAH.get(i).mRecyclerView.scrollToTop();
@@ -818,7 +819,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     void setupHeader() {
         mAdditionalHeaderRows.forEach(row -> mHeader.onPluginDisconnected(row));
 
-        var hideHeader = PreferenceExtensionsKt.firstBlocking(pref2.getHideAppDrawerSearchBar());
+        var hideHeader = PreferenceManager2Kt.firstBlockingCached(pref2.getHideAppDrawerSearchBar());
         mHeader.setVisibility(hideHeader ? View.GONE : View.VISIBLE);
         boolean tabsHidden = !mUsingTabs;
         mHeader.setup(
@@ -871,11 +872,11 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     }
 
     protected void updateHeaderScroll(int scrolledOffset) {
-        if (PreferenceExtensionsKt.firstBlocking(pref2.getHideAppDrawerSearchBar()))
+        if (PreferenceManager2Kt.firstBlockingCached(pref2.getHideAppDrawerSearchBar()))
             return;
-        
+
         // Check if tab container background should be shown
-        boolean showTabContainerBackground = PreferenceExtensionsKt.firstBlocking(
+        boolean showTabContainerBackground = PreferenceManager2Kt.firstBlockingCached(
                 pref2.getWorkProfileTabContainerBackground());
         
         float prog = Utilities.boundToRange((float) scrolledOffset / mHeaderThreshold, 0f, 1f);
@@ -905,8 +906,8 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     protected int getHeaderColor(float blendRatio) {
         if (!mActivityContext.getDeviceProfile().shouldShowAllAppsOnSheet()) {
             float opacity = mSearchContainer.getAlpha();
-            var showHeaderBackground = PreferenceExtensionsKt.firstBlocking(
-                pref2.getAppDrawerSearchBarBackground());
+            var showHeaderBackground = PreferenceManager2Kt.firstBlockingCached(
+                    pref2.getAppDrawerSearchBarBackground());
             if (showHeaderBackground) {
                 opacity = pref.getDrawerOpacity().get();
             }
@@ -1030,12 +1031,21 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             topMargin += getContext().getResources().getDimensionPixelSize(
                     R.dimen.all_apps_header_pill_height);
         }
+        View pageTitle = findViewById(R.id.page_title);
+        if (pageTitle != null && pageTitle.getVisibility() == View.VISIBLE) {
+            int pageTitleHeight = pageTitle.getHeight();
+            if (pageTitleHeight == 0) {
+                float density = getContext().getResources().getDisplayMetrics().density;
+                pageTitleHeight = Math.round(62 * density);
+            }
+            topMargin += pageTitleHeight;
+        }
         layoutParams.topMargin = topMargin;
     }
 
     private void alignParentTop(View v, boolean includeTabsMargin) {
         if (!(v.getLayoutParams() instanceof RelativeLayout.LayoutParams)
-                || PreferenceExtensionsKt.firstBlocking(pref2.getHideAppDrawerSearchBar())) {
+                || PreferenceManager2Kt.firstBlockingCached(pref2.getHideAppDrawerSearchBar())) {
             return;
         }
 
@@ -1050,7 +1060,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
     private void removeCustomRules(View v) {
         if (!(v.getLayoutParams() instanceof RelativeLayout.LayoutParams)
-                || PreferenceExtensionsKt.firstBlocking(pref2.getHideAppDrawerSearchBar())) {
+                || PreferenceManager2Kt.firstBlockingCached(pref2.getHideAppDrawerSearchBar())) {
             return;
         }
 

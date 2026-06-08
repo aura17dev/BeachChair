@@ -217,6 +217,18 @@ public class IconCache extends BaseIconCache {
     }
 
     /**
+     * Clears all cached icons from both persistent database and memory.
+     */
+    public void clearAll() {
+        MODEL_EXECUTOR.execute(() -> {
+            synchronized (IconCache.this) {
+                iconDb.clear();
+                clearMemoryCache();
+            }
+        });
+    }
+
+    /**
      * Fetches high-res icon for the provided ItemInfo and updates the caller when done.
      *
      * @return a request ID that can be used to cancel the request.

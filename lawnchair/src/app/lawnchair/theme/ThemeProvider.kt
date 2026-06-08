@@ -24,6 +24,7 @@ import com.android.launcher3.util.DaggerSingletonObject
 import com.android.launcher3.util.SafeCloseable
 import com.android.systemui.monet.Style
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import com.patrykmichalik.opto.core.onEach
 import dev.kdrag0n.colorkt.Color
 import dev.kdrag0n.colorkt.conversion.ConversionGraph.convert
@@ -32,6 +33,7 @@ import dev.kdrag0n.monet.theme.ColorScheme
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 
 @LauncherAppSingleton
 class ThemeProvider @Inject constructor(
@@ -41,8 +43,8 @@ class ThemeProvider @Inject constructor(
     private val wallpaperManager = WallpaperManagerCompat.INSTANCE.get(context)
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
-    private var accentColor: ColorOption = preferenceManager2.accentColor.firstBlocking()
-    private var colorStyle: ColorStyle = preferenceManager2.colorStyle.firstBlocking()
+    private var accentColor: ColorOption = preferenceManager2.accentColor.firstBlockingCached()
+    private var colorStyle: ColorStyle = preferenceManager2.colorStyle.firstBlockingCached()
 
     private val colorSchemeMap = HashMap<Pair<Int, Style>, ColorScheme>()
     private val listeners = mutableListOf<ColorSchemeChangeListener>()
@@ -133,7 +135,7 @@ class ThemeProvider @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        coroutineScope.cancel()
     }
 
     companion object {

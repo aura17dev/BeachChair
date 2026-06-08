@@ -53,9 +53,7 @@ abstract class RecentsWindowContext(windowContext: Context, wallpaperColorHints:
 
     fun initDeviceProfile() {
         deviceProfile =
-            if (displayId == Display.DEFAULT_DISPLAY)
-                InvariantDeviceProfile.INSTANCE[this].getDeviceProfile(this)
-            else InvariantDeviceProfile.INSTANCE[this].createDeviceProfileForSecondaryDisplay(this)
+            InvariantDeviceProfile.INSTANCE[this].getDeviceProfile(this)
     }
 
     override fun getDeviceProfile(): DeviceProfile {

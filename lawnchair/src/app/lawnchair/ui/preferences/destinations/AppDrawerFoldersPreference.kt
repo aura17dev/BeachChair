@@ -61,20 +61,11 @@ fun AppDrawerFolderPreferenceItem(
     modifier: Modifier = Modifier,
 ) {
     val navController = LocalNavController.current
-
-    PreferenceGroup(
+    ClickablePreference(
+        label = stringResource(R.string.beach_drawer_pages_label),
         modifier = modifier,
-    ) {
-        Item {
-            ClickablePreference(
-                label = stringResource(R.string.app_drawer_folder),
-                modifier = Modifier,
-                onClick = {
-                    navController.navigate(route = AppDrawerFolder)
-                },
-            )
-        }
-    }
+        onClick = { navController.navigate(route = AppDrawerFolder) },
+    )
 }
 
 @Composable
@@ -149,7 +140,7 @@ fun AppDrawerFoldersPreference(
         modifier = modifier.fillMaxWidth(),
     ) {
         PreferenceLayout(
-            label = stringResource(id = R.string.app_drawer_folder),
+            label = stringResource(id = R.string.beach_drawer_pages_label),
             backArrowVisible = true,
         ) {
             PreferenceGroup(
@@ -158,18 +149,18 @@ fun AppDrawerFoldersPreference(
                 Item {
                     SwitchPreference(
                         adapter = prefs.folderApps.getAdapter(),
-                        label = stringResource(id = R.string.apps_in_folder_label),
-                        description = stringResource(id = R.string.apps_in_folder_description),
+                        label = stringResource(id = R.string.apps_in_page_label),
+                        description = stringResource(id = R.string.apps_in_page_description),
                     )
                 }
             }
-            PreferenceGroup(heading = stringResource(R.string.folders_label)) {
+            PreferenceGroup(heading = stringResource(R.string.pages_heading)) {
                 Item {
                     PreferenceTemplate(
                         title = {},
                         description = {
                             Text(
-                                text = stringResource(R.string.add_folder),
+                                text = stringResource(R.string.create_page),
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                         },
@@ -177,7 +168,7 @@ fun AppDrawerFoldersPreference(
                             bottomSheetHandler.show {
                                 FolderEditSheet(
                                     FolderInfo().apply {
-                                        title = stringResource(R.string.my_folder_label)
+                                        title = stringResource(R.string.new_page_default_name)
                                     },
                                     onRename = onCreateFolder,
                                     onNavigate = {},
@@ -266,7 +257,7 @@ fun FolderEditSheet(
     hideAppPicker: Boolean = false,
 ) {
     val resources = LocalContext.current.resources
-    var textFieldValue by remember { mutableStateOf(TextFieldValue(folderInfo.title.toString())) }
+    var textFieldValue by remember { mutableStateOf(TextFieldValue(folderInfo.title?.toString() ?: "")) }
 
     ModalBottomSheetContent(
         buttons = {
@@ -304,7 +295,7 @@ fun FolderEditSheet(
             )
             if (!hideAppPicker) {
                 ClickablePreference(
-                    label = "Manage apps",
+                    label = resources.getString(R.string.manage_page_apps),
                     subtitle = resources.getQuantityString(
                         R.plurals.apps_count,
                         folderInfo.getContents().size,

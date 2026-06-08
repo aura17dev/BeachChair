@@ -89,9 +89,7 @@ class FontManager @Inject constructor(
         }
     }
 
-    override fun close() {
-        TODO("Not yet implemented")
-    }
+    override fun close() = Unit
 
     class FontSpec(val loader: () -> FontCache.Font, val fallback: Typeface) {
         constructor(pref: BasePreferenceManager.FontPref, fallback: Typeface) : this(pref::get, fallback)

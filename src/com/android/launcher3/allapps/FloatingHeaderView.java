@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 public class FloatingHeaderView extends LinearLayout implements
         ValueAnimator.AnimatorUpdateListener, PluginListener<AllAppsRow>, Insettable,
@@ -405,7 +406,7 @@ public class FloatingHeaderView extends LinearLayout implements
         }
         mHeaderCollapsed = false;
         mSnappedScrolledY = -mMaxTranslation;
-        if (!PreferenceExtensionsKt.firstBlocking (pref2.getRememberPosition ())) {
+        if (!PreferenceManager2Kt.firstBlockingCached(pref2.getRememberPosition())) {
             mCurrentRV.scrollToTop();
         }
     }

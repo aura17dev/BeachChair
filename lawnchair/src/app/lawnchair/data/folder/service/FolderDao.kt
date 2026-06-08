@@ -1,4 +1,4 @@
-﻿package app.lawnchair.data.folder.service
+package app.lawnchair.data.folder.service
 
 import androidx.room.Dao
 import androidx.room.Embedded
@@ -19,18 +19,25 @@ interface FolderDao {
     suspend fun insertFolder(folder: FolderInfoEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFolderGetId(folder: FolderInfoEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFolderItems(items: List<FolderItemEntity>)
 
     @Query("SELECT * FROM Folders WHERE id = :folderId")
     @Transaction
     suspend fun getFolderWithItems(folderId: Int): FolderWithItems?
 
-    @Query("SELECT * FROM FolderItems WHERE folderId IS NOT :folderId")
+    @Query("SELECT * FROM FolderItems WHERE folderId = :folderId")
     @Transaction
     suspend fun getItems(folderId: Int): List<FolderItemEntity>
 
     @Query("SELECT * FROM Folders")
     fun getAllFolders(): Flow<List<FolderInfoEntity>>
+
+    @Query("SELECT * FROM Folders")
+    @Transaction
+    fun getAllFoldersWithItems(): Flow<List<FolderWithItems>>
 
     @Transaction
     suspend fun insertFolderWithItems(folder: FolderInfoEntity, items: List<FolderItemEntity>) {
@@ -44,19 +51,25 @@ interface FolderDao {
     @Query(
         value = """
                 UPDATE Folders
-                SET title = :newTitle, hide = :hide, timestamp = :timestamp
+                SET title = :newTitle, hide = :hide, icon = :icon, iconOnly = :iconOnly, hideFromAll = :hideFromAll, timestamp = :timestamp
                 WHERE id = :folderId
             """,
     )
     suspend fun updateFolderInfo(
         folderId: Int,
         newTitle: String,
+        icon: String?,
+        iconOnly: Boolean,
+        hideFromAll: Boolean,
         hide: Boolean,
         timestamp: Long = System.currentTimeMillis(),
     )
 
     @Query("DELETE FROM Folders WHERE id = :folderId")
     suspend fun deleteFolder(folderId: Int)
+
+    @Query("DELETE FROM Folders")
+    suspend fun deleteAllFolders()
 
     @RawQuery
     suspend fun checkpoint(supportSQLiteQuery: SupportSQLiteQuery): Int

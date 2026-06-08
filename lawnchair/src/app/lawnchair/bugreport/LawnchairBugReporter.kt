@@ -42,7 +42,9 @@ class LawnchairBugReporter(private val context: Context) {
             defaultHandler?.uncaughtException(thread, throwable)
         }
 
-        removeDismissedLogs()
+        kotlin.concurrent.thread(start = true) {
+            removeDismissedLogs()
+        }
     }
 
     private fun removeDismissedLogs() {

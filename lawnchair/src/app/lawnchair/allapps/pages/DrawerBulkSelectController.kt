@@ -5,8 +5,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.os.Handler
-import android.os.Looper
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.ViewConfiguration
@@ -15,6 +13,7 @@ import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.util.Themes
 import com.android.launcher3.BubbleTextView
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.abs
@@ -27,9 +26,7 @@ class DrawerBulkSelectController(
 ) {
     private val density = context.resources.displayMetrics.density
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
-    private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
     private val maxFlingVelocity = ViewConfiguration.get(context).scaledMaximumFlingVelocity
-    private val handler = Handler(Looper.getMainLooper())
 
     private var downX = 0f
     private var downY = 0f
@@ -37,10 +34,9 @@ class DrawerBulkSelectController(
     private var downChild: BubbleTextView? = null
     private var isScrolling = false
     private var shouldIntercept = false
-    private var longPressRunnable: Runnable? = null
     private var velocityTracker: VelocityTracker? = null
 
-    private val primaryColor = Themes.getAttrColor(context, android.R.attr.colorAccent)
+    private val primaryColor = Themes.getAttrColor(context, android.R.attr.colorPrimary)
 
     private val touchListener = object : RecyclerView.OnItemTouchListener {
         override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
@@ -60,28 +56,13 @@ class DrawerBulkSelectController(
                         shouldIntercept = true
                         return true
                     }
-
-                    val child = downChild ?: return false
-                    longPressRunnable = Runnable {
-                        val info = child.tag as? AppInfo ?: return@Runnable
-                        child.cancelLongPress()
-                        shouldIntercept = true
-                        viewModel.enterBulkSelectMode()
-                        viewModel.toggleAppSelection(info.toComponentKey())
-                        rv.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
-                    }
-                    handler.postDelayed(longPressRunnable!!, longPressTimeout)
                 }
 
                 MotionEvent.ACTION_MOVE -> {
                     velocityTracker?.addMovement(e)
-                    if (abs(e.x - downX) > touchSlop || abs(e.y - downY) > touchSlop) {
-                        cancelLongPress()
-                    }
                 }
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    cancelLongPress()
                     if (!shouldIntercept) {
                         velocityTracker?.recycle()
                         velocityTracker = null
@@ -130,9 +111,8 @@ class DrawerBulkSelectController(
             }
         }
 
-        override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-            if (disallowIntercept) cancelLongPress()
-        }
+        override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
+
     }
 
     private val badgeRadius = 9f * density
@@ -202,15 +182,9 @@ class DrawerBulkSelectController(
     }
 
     fun detach() {
-        cancelLongPress()
         velocityTracker?.recycle()
         velocityTracker = null
         recyclerView.removeOnItemTouchListener(touchListener)
         recyclerView.removeItemDecoration(decoration)
-    }
-
-    private fun cancelLongPress() {
-        longPressRunnable?.let { handler.removeCallbacks(it) }
-        longPressRunnable = null
     }
 }

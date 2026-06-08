@@ -33,6 +33,7 @@ import com.android.launcher3.views.RecyclerViewFastScroller;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * A base {@link RecyclerView}, which does the following:
@@ -99,7 +100,7 @@ public abstract class FastScrollRecyclerView extends RecyclerView  {
      * Saved the scroll position
      */
     public void saveScrollPosition() {
-        savedScrollPosition = PreferenceExtensionsKt.firstBlocking(pref2.getRememberPosition())
+        savedScrollPosition = PreferenceManager2Kt.firstBlockingCached(pref2.getRememberPosition())
                 ? computeVerticalScrollOffset()
                 : 0;
     }

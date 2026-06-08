@@ -190,7 +190,6 @@ class ComposeBottomSheet<T>(context: Context) : AbstractSlideInView<T>(context, 
             ProvideLifecycleState {
                 CompositionLocalProvider(
                     LocalContentColor provides MaterialTheme.colorScheme.onSurface,
-                    LocalContentColor provides MaterialTheme.colorScheme.onSurface,
                 ) {
                     content()
                 }

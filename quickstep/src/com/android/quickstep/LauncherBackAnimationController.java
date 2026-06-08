@@ -638,7 +638,6 @@ public class LauncherBackAnimationController {
                 R.dimen.swipe_back_window_corner_radius)
                 : 0;
         mWindowScaleStartCornerRadius = QuickStepContract.getWindowCornerRadius(mLauncher);
-        // pE-TODO(QPR1): mStatusBarHeight is 24
         mStatusBarHeight = SystemBarUtils.getStatusBarHeight(mLauncher);
         if (Flags.allAppsBlur() || enableOverviewBackgroundWallpaperBlur()) {
             mMaxBlurRadius = mLauncher.getResources().getDimensionPixelSize(

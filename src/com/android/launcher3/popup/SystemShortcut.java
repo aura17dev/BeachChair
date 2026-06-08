@@ -54,6 +54,7 @@ import java.util.Arrays;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * Represents a system shortcut for a given app. The shortcut should have a label and icon, and an
@@ -136,7 +137,7 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
 
     private static boolean isHomeLocked(ActivityContext context) {
         PreferenceManager2 prefs = PreferenceManager2.getInstance(context.asContext());
-        return PreferenceExtensionsKt.firstBlocking(prefs.getLockHomeScreen());
+        return PreferenceManager2Kt.firstBlockingCached(prefs.getLockHomeScreen());
     }
 
     public static final Factory<ActivityContext> WIDGETS = (context, itemInfo, originalView) -> {

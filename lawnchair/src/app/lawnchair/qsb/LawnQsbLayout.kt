@@ -40,6 +40,7 @@ import com.android.launcher3.qsb.QsbContainerView
 import com.android.launcher3.util.Themes
 import com.android.launcher3.views.ActivityContext
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flatMapLatest
@@ -105,7 +106,7 @@ class LawnQsbLayout(context: Context, attrs: AttributeSet?) : FrameLayout(contex
         setOnClickListener {
             val launcher = context.launcher
             launcher.lifecycleScope.launch {
-                if (preferenceManager2.matchHotseatQsbStyle.firstBlocking()) {
+                if (preferenceManager2.matchHotseatQsbStyle.firstBlockingCached()) {
                     launcher.appsView.searchUiManager.editText?.showKeyboard()
                     launcher.animateToAllApps()
                 } else {

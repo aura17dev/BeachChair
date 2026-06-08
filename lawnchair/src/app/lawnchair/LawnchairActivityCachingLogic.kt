@@ -91,9 +91,7 @@ class LawnchairActivityCachingLogic @Inject constructor(
         provider: IconProvider,
     ): String? = provider.getStateForApp(getApplicationInfo(item))
 
-    override fun close() {
-        TODO("Not yet implemented")
-    }
+    override fun close() = Unit
 
     companion object {
         @JvmField

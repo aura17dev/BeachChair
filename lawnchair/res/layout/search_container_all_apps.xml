@@ -12,6 +12,7 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
+  ~
   -->
 
 <app.lawnchair.allapps.AllAppsSearchInput xmlns:android="http://schemas.android.com/apk/res/android"
@@ -22,108 +23,151 @@
     android:layout_height="wrap_content"
     android:clickable="true"
     android:focusable="true">
-    <FrameLayout
-        android:id="@+id/search_wrapper"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/search_box_height"
-        android:layout_gravity="center"
-        android:background="@drawable/search_input_fg"
-        android:clickable="false"
-        android:focusable="true"
-        android:padding="0dp">
-        <TextView
-            android:id="@+id/hint"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:layout_marginStart="28dp"
-            android:layout_marginEnd="28dp"
-            android:clickable="false"
-            android:ellipsize="end"
-            android:gravity="start|center"
-            android:letterSpacing="-0.01"
-            android:scrollHorizontally="true"
-            android:singleLine="true"
-            android:textColor="?android:textColorTertiary"
-            android:textSize="20sp" />
-
-        <app.lawnchair.allapps.FallbackSearchInputView
-            android:id="@+id/input"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginStart="28dp"
-            android:layout_marginEnd="28dp"
-            android:background="@android:color/transparent"
-            android:ellipsize="end"
-            android:focusableInTouchMode="true"
-            android:gravity="start|center"
-            android:imeOptions="actionGo|flagNoExtractUi"
-            android:inputType="textNoSuggestions"
-            android:letterSpacing="-0.01"
-            android:privateImeOptions="bc_search"
-            android:scrollHorizontally="true"
-            android:singleLine="true"
-            android:textColor="?android:textColorPrimary"
-            android:textColorHint="?android:textColorTertiary"
-            android:textSize="20sp" />
-
-    </FrameLayout>
-
-    <ImageButton
-        android:id="@+id/search_icon"
-        android:layout_width="@dimen/search_box_height"
-        android:layout_height="@dimen/search_box_height"
-        android:layout_gravity="center|start"
-        android:background="@drawable/pill_ripple"
-        android:layout_marginEnd="6dp"
-        android:clickable="true"
-        android:contentDescription="@string/search_bar_label"
-        android:scaleType="center"
-        android:src="@drawable/ic_allapps_search"
-        app:tint="?android:textColorSecondary" />
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="@dimen/search_box_height"
-        android:layout_gravity="end|center"
-        android:clipToPadding="false"
-        android:orientation="horizontal"
-        tools:ignore="RtlSymmetry">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <app.lawnchair.qsb.AssistantIconView
-            android:id="@+id/mic_btn"
-            android:layout_width="@dimen/qsb_icon_width"
-            android:layout_height="@dimen/search_box_height"
-            android:background="@drawable/pill_ripple"
-            android:clickable="true"
-            android:contentDescription="@string/label_voice_search"
-            android:scaleType="fitCenter"
-            android:padding="@dimen/qsb_icon_padding"
-            android:src="@drawable/ic_remove_no_shadow"
-            app:tint="?android:textColorSecondary" />
+        <RelativeLayout
+            android:id="@+id/page_title_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="20dp"
+            android:visibility="gone">
 
-        <ImageButton
-            android:id="@+id/lens_btn"
-            android:layout_width="@dimen/qsb_icon_width"
-            android:layout_height="@dimen/search_box_height"
-            android:background="@drawable/pill_ripple"
-            android:clickable="true"
-            android:layout_marginStart="-6dp"
-            android:contentDescription="@string/label_lens"
-            android:scaleType="fitCenter"
-            android:padding="@dimen/qsb_icon_padding"
-            android:src="@drawable/ic_remove_no_shadow"
-            app:tint="?android:textColorSecondary" />
+            <TextView
+                android:id="@+id/page_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp"
+                android:layout_toStartOf="@id/page_menu_btn"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="?android:textColorPrimary"
+                android:text="All Apps" />
 
-        <ImageButton
-            android:id="@+id/action_btn"
-            android:layout_width="@dimen/search_box_height"
-            android:layout_height="@dimen/search_box_height"
-            android:background="@drawable/pill_ripple"
-            android:clickable="true"
-            android:contentDescription="@string/search_input_action_clear_results"
-            android:scaleType="center"
-            android:src="@drawable/ic_remove_no_shadow"
-            app:tint="?android:textColorSecondary" />
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/page_menu_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:visibility="gone" />
+
+        </RelativeLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <FrameLayout
+                android:id="@+id/search_wrapper"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/search_box_height"
+                android:layout_gravity="center"
+                android:background="@drawable/search_input_fg"
+                android:clickable="false"
+                android:focusable="true"
+                android:padding="0dp">
+
+                <TextView
+                    android:id="@+id/hint"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:layout_marginStart="28dp"
+                    android:layout_marginEnd="28dp"
+                    android:clickable="false"
+                    android:ellipsize="end"
+                    android:gravity="start|center"
+                    android:letterSpacing="-0.01"
+                    android:scrollHorizontally="true"
+                    android:singleLine="true"
+                    android:textColor="?android:textColorTertiary"
+                    android:textSize="20sp" />
+
+                <app.lawnchair.allapps.FallbackSearchInputView
+                    android:id="@+id/input"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="28dp"
+                    android:layout_marginEnd="28dp"
+                    android:background="@android:color/transparent"
+                    android:ellipsize="end"
+                    android:focusableInTouchMode="true"
+                    android:gravity="start|center"
+                    android:imeOptions="actionGo|flagNoExtractUi"
+                    android:inputType="textNoSuggestions"
+                    android:letterSpacing="-0.01"
+                    android:privateImeOptions="bc_search"
+                    android:scrollHorizontally="true"
+                    android:singleLine="true"
+                    android:textColor="?android:textColorPrimary"
+                    android:textColorHint="?android:textColorTertiary"
+                    android:textSize="20sp" />
+
+            </FrameLayout>
+
+            <ImageButton
+                android:id="@+id/search_icon"
+                android:layout_width="@dimen/search_box_height"
+                android:layout_height="@dimen/search_box_height"
+                android:layout_gravity="center|start"
+                android:background="@drawable/pill_ripple"
+                android:layout_marginEnd="6dp"
+                android:clickable="true"
+                android:contentDescription="@string/search_bar_label"
+                android:scaleType="center"
+                android:src="@drawable/ic_allapps_search"
+                app:tint="?android:textColorSecondary" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/search_box_height"
+                android:layout_gravity="end|center"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                tools:ignore="RtlSymmetry">
+
+                <app.lawnchair.qsb.AssistantIconView
+                    android:id="@+id/mic_btn"
+                    android:layout_width="@dimen/qsb_icon_width"
+                    android:layout_height="@dimen/search_box_height"
+                    android:background="@drawable/pill_ripple"
+                    android:clickable="true"
+                    android:contentDescription="@string/label_voice_search"
+                    android:scaleType="fitCenter"
+                    android:padding="@dimen/qsb_icon_padding"
+                    android:src="@drawable/ic_remove_no_shadow"
+                    app:tint="?android:textColorSecondary" />
+
+                <ImageButton
+                    android:id="@+id/lens_btn"
+                    android:layout_width="@dimen/qsb_icon_width"
+                    android:layout_height="@dimen/search_box_height"
+                    android:background="@drawable/pill_ripple"
+                    android:clickable="true"
+                    android:layout_marginStart="-6dp"
+                    android:contentDescription="@string/label_lens"
+                    android:scaleType="fitCenter"
+                    android:padding="@dimen/qsb_icon_padding"
+                    android:src="@drawable/ic_remove_no_shadow"
+                    app:tint="?android:textColorSecondary" />
+
+                <ImageButton
+                    android:id="@+id/action_btn"
+                    android:layout_width="@dimen/search_box_height"
+                    android:layout_height="@dimen/search_box_height"
+                    android:background="@drawable/pill_ripple"
+                    android:clickable="true"
+                    android:contentDescription="@string/search_input_action_clear_results"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_remove_no_shadow"
+                    app:tint="?android:textColorSecondary" />
+            </LinearLayout>
+        </FrameLayout>
     </LinearLayout>
-
 </app.lawnchair.allapps.AllAppsSearchInput>

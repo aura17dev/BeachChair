@@ -31,7 +31,7 @@ import com.android.launcher3.Utilities
 import com.android.launcher3.allapps.BaseAllAppsAdapter
 import com.android.launcher3.search.SearchAlgorithm
 import com.android.launcher3.search.SearchCallback
-import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 
 sealed class LawnchairSearchAlgorithm(
     protected val context: Context,
@@ -82,15 +82,31 @@ sealed class LawnchairSearchAlgorithm(
             .removeDuplicateDividers()
             .toList()
 
-        val appAndShortcutIndices = findAppAndShorcutIndices(filtered)
-        val smallIconIndices = findIndices(filtered, SMALL_ICON_HORIZONTAL_TEXT)
-        val iconRowIndices = findIndices(filtered, ICON_HORIZONTAL_TEXT)
-        val peopleTileIndices = findIndices(filtered, PEOPLE_TILE)
-        val suggestionIndices = findIndices(filtered, HORIZONTAL_MEDIUM_TEXT)
-        val fileIndices = findIndices(filtered, THUMBNAIL)
-        val settingIndices = findIndices(filtered, ICON_SLICE)
-        val recentIndices = findIndices(filtered, WIDGET_LIVE)
-        val calculator = findIndices(filtered, CALCULATOR)
+        val appAndShortcutIndices = mutableListOf<Int>()
+        val smallIconIndices = mutableListOf<Int>()
+        val iconRowIndices = mutableListOf<Int>()
+        val peopleTileIndices = mutableListOf<Int>()
+        val suggestionIndices = mutableListOf<Int>()
+        val fileIndices = mutableListOf<Int>()
+        val settingIndices = mutableListOf<Int>()
+        val recentIndices = mutableListOf<Int>()
+        val calculator = mutableListOf<Int>()
+        filtered.forEachIndexed { i, target ->
+            val lt = target.layoutType
+            if ((target.isApp || target.isShortcut) &&
+                (lt == ICON_HORIZONTAL_TEXT || lt == SMALL_ICON_HORIZONTAL_TEXT)
+            ) appAndShortcutIndices += i
+            if (!target.isApp) when (lt) {
+                SMALL_ICON_HORIZONTAL_TEXT -> smallIconIndices += i
+                ICON_HORIZONTAL_TEXT -> iconRowIndices += i
+                PEOPLE_TILE -> peopleTileIndices += i
+                HORIZONTAL_MEDIUM_TEXT -> suggestionIndices += i
+                THUMBNAIL -> fileIndices += i
+                ICON_SLICE -> settingIndices += i
+                WIDGET_LIVE -> recentIndices += i
+                CALCULATOR -> calculator += i
+            }
+        }
 
         return filtered.mapIndexedNotNull { index, target ->
             val isFirst = index == 0 || filtered[index - 1].isDivider
@@ -237,7 +253,7 @@ sealed class LawnchairSearchAlgorithm(
 
         fun create(context: Context): LawnchairSearchAlgorithm {
             val prefs = PreferenceManager2.getInstance(context)
-            val searchAlgorithm = prefs.searchAlgorithm.firstBlocking()
+            val searchAlgorithm = prefs.searchAlgorithm.firstBlockingCached()
 
             return when {
                 searchAlgorithm == ASI_SEARCH && isASISearchEnabled(context) -> LawnchairASISearchAlgorithm(

@@ -12,6 +12,7 @@ import com.android.launcher3.logging.StatsLogManager.LauncherEvent
 import com.android.launcher3.popup.SystemShortcut
 import com.android.launcher3.views.OptionsPopupView.OptionItem
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import com.patrykmichalik.opto.core.setBlocking
 
 object LauncherOptionsPopup {
@@ -33,7 +34,7 @@ object LauncherOptionsPopup {
     ) {
         val prefs2 = getInstance(launcher)
 
-        val currentOrder = prefs2.launcherPopupOrder.firstBlocking()
+        val currentOrder = prefs2.launcherPopupOrder.firstBlockingCached()
         val currentOptions = currentOrder.toLauncherOptions()
 
         // check for missing items in current options; if so, add them
@@ -63,9 +64,9 @@ object LauncherOptionsPopup {
         onStartBeachMods: (View) -> Boolean,
     ): ArrayList<OptionItem> {
         val prefs2 = getInstance(launcher!!)
-        val lockHomeScreen = prefs2.lockHomeScreen.firstBlocking()
+        val lockHomeScreen = prefs2.lockHomeScreen.firstBlockingCached()
         val optionOrder = prefs2
-            .launcherPopupOrder.firstBlocking().toLauncherOptions()
+            .launcherPopupOrder.firstBlockingCached().toLauncherOptions()
 
         val wallpaperResString =
             if (Utilities.existsStyleWallpapers(launcher)) R.string.styles_wallpaper_button_text else R.string.wallpapers
@@ -229,17 +230,17 @@ object LauncherOptionsPopup {
     ) {
         val prefs2 = getInstance(launcher)
 
-        val lockHomeScreenButtonOnPopUp = prefs2.lockHomeScreenButtonOnPopUp.firstBlocking()
-        val editHomeScreenButtonOnPopUp = prefs2.editHomeScreenButtonOnPopUp.firstBlocking()
-        val showSystemSettingsEntryOnPopUp = prefs2.showSystemSettingsEntryOnPopUp.firstBlocking()
+        val lockHomeScreenButtonOnPopUp = prefs2.lockHomeScreenButtonOnPopUp.firstBlockingCached()
+        val editHomeScreenButtonOnPopUp = prefs2.editHomeScreenButtonOnPopUp.firstBlockingCached()
+        val showSystemSettingsEntryOnPopUp = prefs2.showSystemSettingsEntryOnPopUp.firstBlockingCached()
 
         val optionOrder = prefs2.launcherPopupOrder
-        val legacyPopupOptionsMigrated = prefs2.legacyPopupOptionsMigrated.firstBlocking()
+        val legacyPopupOptionsMigrated = prefs2.legacyPopupOptionsMigrated.firstBlockingCached()
 
         if (!legacyPopupOptionsMigrated) {
             prefs2.legacyPopupOptionsMigrated.setBlocking(true)
 
-            val options = optionOrder.firstBlocking().toLauncherOptions()
+            val options = optionOrder.firstBlockingCached().toLauncherOptions()
 
             options.forEachIndexed { index, item ->
                 if (item.identifier == "lock") {

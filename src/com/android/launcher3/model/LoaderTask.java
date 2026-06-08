@@ -557,7 +557,9 @@ public class LoaderTask implements Runnable {
             mIconCache.getTitlesAndIconsInBulk(iconRequestInfos);
             for (IconRequestInfo<WorkspaceItemInfo> iconRequestInfo : iconRequestInfos) {
                 WorkspaceItemInfo wai = iconRequestInfo.itemInfo;
-                if (mIconCache.isDefaultIcon(wai.bitmap, wai.user)) {
+                if (iconRequestInfo.iconBlob != null) {
+                    iconRequestInfo.loadIconFromDbBlob(mContext);
+                } else if (mIconCache.isDefaultIcon(wai.bitmap, wai.user)) {
                     logASplit("tryLoadWorkspaceIconsInBulk: default icon found for "
                             + wai.getTargetComponent() + ", will attempt to load from iconBlob");
                     iconRequestInfo.loadIconFromDbBlob(mContext);

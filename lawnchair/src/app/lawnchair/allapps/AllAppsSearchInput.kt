@@ -17,7 +17,6 @@ import android.view.View
 import android.view.View.OnFocusChangeListener
 import android.view.ViewTreeObserver
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
@@ -32,14 +31,17 @@ import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
+import app.lawnchair.allapps.IconScrollWave
 import app.lawnchair.allapps.pages.AddAppsToPageSheet
 import app.lawnchair.allapps.pages.AppListItem
 import app.lawnchair.allapps.pages.CreatePageSheet
 import app.lawnchair.allapps.pages.DrawerBulkSelectController
 import app.lawnchair.allapps.pages.DrawerPageTabBar
 import app.lawnchair.allapps.pages.DrawerPageViewModel
+import app.lawnchair.allapps.pages.IconStyleSheet
 import app.lawnchair.allapps.pages.MoveToPageSheet
 import app.lawnchair.allapps.pages.RenamePageSheet
+import app.lawnchair.preferences2.firstBlockingCached
 import app.lawnchair.launcher
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
@@ -73,7 +75,6 @@ import com.android.launcher3.search.SearchCallback
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.Themes
 import com.android.systemui.shared.system.BlurUtils
-import com.patrykmichalik.opto.core.firstBlocking
 import java.util.Locale
 import kotlin.math.max
 import kotlinx.coroutines.flow.launchIn
@@ -89,6 +90,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     AllAppsStore.OnUpdateListener,
     ViewTreeObserver.OnGlobalLayoutListener {
 
+    private lateinit var pageTitle: TextView
+    private lateinit var pageTitleContainer: android.view.View
+    private lateinit var pageMenuBtnView: ComposeView
     private lateinit var hint: TextView
     private lateinit var input: FallbackSearchInputView
     private lateinit var actionButton: ImageButton
@@ -120,12 +124,6 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     } else {
         DrawableTokens.SearchInputFg.resolve(context)
     }
-    private val bgAlphaAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = 300
-        interpolator = DecelerateInterpolator()
-    }
-    private var bgVisible = true
-    private var bgAlpha = 1f
     private val suggestionsRecent = SearchRecentSuggestions(launcher, LawnchairRecentSuggestionProvider.AUTHORITY, LawnchairRecentSuggestionProvider.MODE)
     private val prefs = PreferenceManager.getInstance(launcher)
     private val prefs2 = PreferenceManager2.getInstance(launcher)
@@ -133,8 +131,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     private var initialPaddingLeft: Int = 0
     private var initialPaddingRight: Int = 0
 
-    // 8 dp topMargin + 4 dp handle height + 8 dp gap = 20 dp reserved for the drag handle pill.
-    private val drawerHandleAreaPx = (20 * resources.displayMetrics.density).toInt()
+    private val drawerHandleAreaPx = 0
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -142,17 +139,22 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         val wrapper = ViewCompat.requireViewById<View>(this, R.id.search_wrapper)
         wrapper.background = bg
         setupPadding()
-        bgAlphaAnimator.addUpdateListener { updateBgAlpha() }
+
+        pageTitleContainer = ViewCompat.requireViewById(this, R.id.page_title_container)
+        pageTitle = ViewCompat.requireViewById(this, R.id.page_title)
+        pageTitle.text = "All Apps"
+        pageMenuBtnView = ViewCompat.requireViewById(this, R.id.page_menu_btn)
 
         hint = ViewCompat.requireViewById(this, R.id.hint)
 
         input = ViewCompat.requireViewById(this, R.id.input)
+        input.setHint(R.string.all_apps_search_bar_hint_unfocused)
 
         searchIcon = ViewCompat.requireViewById(this, R.id.search_icon)
         micIcon = ViewCompat.requireViewById(this, R.id.mic_btn)
         lensIcon = ViewCompat.requireViewById(this, R.id.lens_btn)
 
-        val shouldShowIcons = prefs2.matchHotseatQsbStyle.firstBlocking()
+        val shouldShowIcons = prefs2.matchHotseatQsbStyle.firstBlockingCached()
 
         val searchProvider = getSearchProvider(context, prefs2)
         val isGoogle = searchProvider == Google || searchProvider == GoogleGo || searchProvider == PixelSearch
@@ -215,11 +217,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         val currentPaddingRight = initialPaddingRight
         input.onFocusChangeListener = OnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                if (prefs2.searchAlgorithm.firstBlocking() != LawnchairSearchAlgorithm.APP_SEARCH) {
-                    input.setHint(R.string.all_apps_device_search_hint)
-                } else {
-                    input.setHint(R.string.all_apps_search_bar_hint)
-                }
+                input.setHint("")
 
                 if (input.text.toString().isEmpty()) {
                     searchAlgorithm?.doZeroStateSearch(this)
@@ -244,7 +242,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
                 animatePadding(currentPaddingLeft, currentPaddingRight)
                 focusedResultTitle = ""
-                input.setHint("")
+                input.setHint(R.string.all_apps_search_bar_hint_unfocused)
                 hint.text = ""
             }
 
@@ -274,7 +272,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             },
         )
 
-        val hide = prefs2.hideAppDrawerSearchBar.firstBlocking()
+        val hide = prefs2.hideAppDrawerSearchBar.firstBlockingCached()
         if (hide) {
             isInvisible = true
             layoutParams.height = 0
@@ -286,6 +284,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     private fun initPageTabs() {
         prefs2.enableDrawerPages.get()
             .onEach { enabled ->
+                drawerPagesEnabled = enabled
                 if (enabled) {
                     showTabBar()
                 } else {
@@ -293,11 +292,31 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 }
             }
             .launchIn(viewAttachedScope)
+
+        prefs2.drawerPageSwipeFade.get()
+            .onEach { drawerPageSwipeFadeEnabled = it }
+            .launchIn(viewAttachedScope)
+
+        prefs2.drawerPageSwipeFadeDuration.get()
+            .onEach { drawerPageSwipeFadeDuration = it }
+            .launchIn(viewAttachedScope)
     }
 
+    private var drawerPagesEnabled = false
+    private var drawerPageSwipeFadeEnabled = false
+    private var drawerPageSwipeFadeDuration = 300
+    private var paddingAnimator: ValueAnimator? = null
     private var tabBarView: androidx.compose.ui.platform.ComposeView? = null
     private var drawerPageViewModel: DrawerPageViewModel? = null
-    private var bulkSelectController: DrawerBulkSelectController? = null
+    private var pageTransitionRv: androidx.recyclerview.widget.RecyclerView? = null
+    private var pageTransitionCounter = 0
+    // Cache of page-id → component-key set, rebuilt only when the pages list reference changes.
+    // Avoids rebuilding Set<ComponentKey> from FolderInfo.getContents() on every page switch.
+    private var pageKeySetCacheSource: List<com.android.launcher3.model.data.FolderInfo>? = null
+    private var pageKeySetCache: Map<Int, Set<com.android.launcher3.util.ComponentKey>> = emptyMap()
+    private val bulkSelectControllers = java.util.WeakHashMap<androidx.recyclerview.widget.RecyclerView, DrawerBulkSelectController>()
+    private val swipeListeners = java.util.WeakHashMap<androidx.recyclerview.widget.RecyclerView, androidx.recyclerview.widget.RecyclerView.OnItemTouchListener>()
+    private val boundRecyclerViews = java.util.Collections.newSetFromMap(java.util.WeakHashMap<androidx.recyclerview.widget.RecyclerView, Boolean>())
     private var tabBarHeightPx: Int = 0
 
     private fun showTabBar() {
@@ -317,8 +336,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
             appsView.addView(tabBar, params)
 
-            // 52 dp is the tab bar content row height (nav bar inset is handled by AOSP separately).
-            tabBarHeightPx = (52 * resources.displayMetrics.density).toInt()
+            // 64 dp is the tab bar content row height (nav bar inset is handled by AOSP separately).
+            tabBarHeightPx = (64 * resources.displayMetrics.density).toInt()
             appsView.setDrawerPageBottomPadding(tabBarHeightPx)
 
             // Read nav bar height once so the Compose spacer uses a static value.
@@ -329,11 +348,15 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             val navBarPadding = (navBarInsetPx / resources.displayMetrics.density).dp
 
             val application = context.applicationContext as android.app.Application
-            val viewModel = DrawerPageViewModel(application)
+            val viewModel = androidx.lifecycle.ViewModelProvider(
+                launcher.viewModelStore,
+                androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(application),
+            )[DrawerPageViewModel::class.java]
             drawerPageViewModel = viewModel
 
             tabBar.setContent {
-                LawnchairTheme {
+                val isDark = com.android.launcher3.Utilities.isDarkTheme(context)
+                LawnchairTheme(darkTheme = isDark) {
                     val pages by viewModel.pages.collectAsState()
                     val selectedPageId by viewModel.selectedPageId.collectAsState()
                     val isBulkSelect by viewModel.isBulkSelectMode.collectAsState()
@@ -347,7 +370,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                         navBarPadding = navBarPadding,
                         onPageSelected = { pageId ->
                             viewModel.selectPage(pageId)
-                            filterAppsByPage(pageId, pages)
+                            animatePageTransition(pageId, pages)
                         },
                         onPageLongPress = { page ->
                             showRenamePageSheet(page, pages, viewModel)
@@ -355,12 +378,6 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                         onExitBulkSelect = { viewModel.exitBulkSelectMode() },
                         onMoveSelected = {
                             showMoveToPageSheet(pages, viewModel, selectedApps)
-                        },
-                        onCreatePage = {
-                            showCreatePageSheet(pages, viewModel)
-                        },
-                        onAddApps = selectedPageId?.let { pageId ->
-                            { showAddAppsSheet(pageId, pages, viewModel) }
                         },
                     )
                 }
@@ -378,17 +395,185 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 }
                 .launchIn(viewAttachedScope)
 
-            appsView.activeRecyclerView?.let { rv ->
-                bulkSelectController = DrawerBulkSelectController(context, rv, viewModel, viewAttachedScope)
+            viewModel.selectedPageId
+                .onEach { selectedPageId ->
+                    updatePageTitle(selectedPageId, viewModel.pages.value)
+                }
+                .launchIn(viewAttachedScope)
+
+            viewModel.pages
+                .onEach { pages ->
+                    updatePageTitle(viewModel.selectedPageId.value, pages)
+                    if (!viewModel.isBulkSelectMode.value) {
+                        filterAppsByPage(viewModel.selectedPageId.value, pages)
+                    }
+                }
+                .launchIn(viewAttachedScope)
+
+            setupRecyclerListeners()
+            pageTitleContainer.isVisible = true
+            pageMenuBtnView.isVisible = true
+            pageMenuBtnView.setContent {
+                val isDark = com.android.launcher3.Utilities.isDarkTheme(context)
+                app.lawnchair.ui.theme.LawnchairTheme(darkTheme = isDark) {
+                    val selectedPageId by viewModel.selectedPageId.collectAsState()
+                    val pages by viewModel.pages.collectAsState()
+                    app.lawnchair.allapps.pages.PageMenuButton(
+                        showAddApps = selectedPageId != null,
+                        onNewPage = { showCreatePageSheet(pages, viewModel) },
+                        onAddApps = {
+                            val pageId = selectedPageId ?: return@PageMenuButton
+                            showAddAppsSheet(pageId, pages, viewModel)
+                        },
+                        onSelectApps = if (selectedPageId != null) {
+                            { viewModel.enterBulkSelectMode() }
+                        } else null,
+                        onAiSort = { showAiSortSheet(pages) },
+                        onIconStyle = { showIconStyleSheet() },
+                        onWipePages = { wipeAllPages(viewModel) },
+                        onLawnchairSettings = {
+                            context.startActivity(
+                                android.content.Intent(android.content.Intent.ACTION_APPLICATION_PREFERENCES)
+                                    .setPackage(context.packageName)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK),
+                            )
+                        },
+                        onDeviceSettings = {
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        },
+                    )
+                }
             }
         } catch (e: Exception) {
             android.util.Log.e("DrawerPages", "Failed to show tab bar", e)
         }
     }
 
+    private fun findAllRecyclerViews(view: View): List<androidx.recyclerview.widget.RecyclerView> {
+        val result = mutableListOf<androidx.recyclerview.widget.RecyclerView>()
+        if (view is androidx.recyclerview.widget.RecyclerView) {
+            result.add(view)
+        } else if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                result.addAll(findAllRecyclerViews(view.getChildAt(i)))
+            }
+        }
+        return result
+    }
+
+    private fun setupRecyclerListeners() {
+        val viewModel = drawerPageViewModel ?: return
+        if (!::appsView.isInitialized) return
+
+        val rvs = findAllRecyclerViews(appsView)
+        for (rv in rvs) {
+            if (rv is com.android.launcher3.allapps.SearchRecyclerView) {
+                continue
+            }
+            if (!boundRecyclerViews.contains(rv)) {
+                boundRecyclerViews.add(rv)
+                if (pageTransitionRv == null) pageTransitionRv = rv
+                try {
+                    val controller = DrawerBulkSelectController(context, rv, viewModel, viewAttachedScope)
+                    bulkSelectControllers[rv] = controller
+
+                    val swipeListener = createSwipeListener(viewModel)
+                    rv.addOnItemTouchListener(swipeListener)
+                    swipeListeners[rv] = swipeListener
+                } catch (e: Exception) {
+                    android.util.Log.e("DrawerPages", "Failed to bind recycler view listeners", e)
+                }
+            }
+        }
+    }
+
+    private fun createSwipeListener(viewModel: DrawerPageViewModel): androidx.recyclerview.widget.RecyclerView.OnItemTouchListener {
+        val slop = android.view.ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+        val minSwipeDistance = 48f * resources.displayMetrics.density
+        var startX = 0f
+        var startY = 0f
+        var intercepting = false
+
+        return object : androidx.recyclerview.widget.RecyclerView.OnItemTouchListener {
+            override fun onInterceptTouchEvent(rv: androidx.recyclerview.widget.RecyclerView, e: android.view.MotionEvent): Boolean {
+                when (e.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        startX = e.x
+                        startY = e.y
+                        intercepting = false
+                    }
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        if (!intercepting) {
+                            val dx = kotlin.math.abs(e.x - startX)
+                            val dy = kotlin.math.abs(e.y - startY)
+                            // Intercept only when clearly horizontal (dx leads dy by 20%)
+                            if (dx > slop && dx > dy * 1.2f) {
+                                intercepting = true
+                            }
+                        }
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        intercepting = false
+                    }
+                }
+                return intercepting
+            }
+
+            override fun onTouchEvent(rv: androidx.recyclerview.widget.RecyclerView, e: android.view.MotionEvent) {
+                when (e.actionMasked) {
+                    android.view.MotionEvent.ACTION_UP -> {
+                        val dx = e.x - startX
+                        if (kotlin.math.abs(dx) >= minSwipeDistance) {
+                            val pages = viewModel.pages.value
+                            val allPageIds: List<Int?> = ArrayList<Int?>(pages.size + 1).apply {
+                                add(null)
+                                pages.forEach { add(it.id) }
+                            }
+                            val currentIndex = allPageIds.indexOf(viewModel.selectedPageId.value).coerceAtLeast(0)
+                            val nextIndex = if (dx < 0) currentIndex + 1 else currentIndex - 1
+                            if (nextIndex in allPageIds.indices) {
+                                val nextPageId = allPageIds[nextIndex]
+                                viewModel.selectPage(nextPageId)
+                                animatePageTransition(nextPageId, pages)
+                            }
+                        }
+                        intercepting = false
+                    }
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+                        intercepting = false
+                    }
+                }
+            }
+
+            override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+                if (disallowIntercept) intercepting = false
+            }
+        }
+    }
+
     private fun hideTabBar() {
-        bulkSelectController?.detach()
-        bulkSelectController = null
+        // Snapshot before iterating — WeakHashMap entries can be cleared by GC mid-iteration,
+        // causing ConcurrentModificationException.
+        ArrayList(bulkSelectControllers.values).forEach { it.detach() }
+        bulkSelectControllers.clear()
+
+        ArrayList(swipeListeners.entries).forEach { (rv, listener) ->
+            try {
+                rv.removeOnItemTouchListener(listener)
+            } catch (e: Exception) {
+                Log.w("AllAppsSearchInput", "Failed to remove touch listener", e)
+            }
+        }
+        swipeListeners.clear()
+        boundRecyclerViews.clear()
+
+        if (::appsView.isInitialized) IconScrollWave.uninstall(appsView)
+
+        pageKeySetCacheSource = null
+        pageKeySetCache = emptyMap()
         drawerPageViewModel = null
         if (tabBarHeightPx > 0) {
             appsView.setDrawerPageBottomPadding(0)
@@ -400,17 +585,85 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             }
         }
         tabBarView = null
+        pageTransitionRv?.animate()?.cancel()
+        pageTransitionRv?.alpha = 1f
+        pageTransitionRv = null
+        pageTitleContainer.isVisible = false
+        pageMenuBtnView.isVisible = false
+        updatePageTitle(null, emptyList())
+    }
+
+    private fun animatePageTransition(nextPageId: Int?, pages: List<FolderInfo>) {
+        val rv = pageTransitionRv
+        if (!drawerPageSwipeFadeEnabled || rv == null) {
+            filterAppsByPage(nextPageId, pages)
+            rv?.scrollToPosition(0)
+            return
+        }
+        val totalMs = drawerPageSwipeFadeDuration.toLong()
+        val fadeOutMs = (totalMs * 0.4f).toLong()
+        val fadeInMs = (totalMs * 0.6f).toLong()
+        val thisTransition = ++pageTransitionCounter
+        rv.animate().cancel()
+        rv.animate()
+            .alpha(0f)
+            .setDuration(fadeOutMs)
+            .setInterpolator(FastOutSlowInInterpolator())
+            .withEndAction {
+                if (pageTransitionCounter != thisTransition) return@withEndAction
+                // Suppress per-item animations so content switches instantaneously at α=0.
+                // Without this, RecyclerView runs its own item exit/enter animations while
+                // the container alpha is also transitioning, causing a double-fade glitch.
+                val savedAnimator = rv.itemAnimator
+                rv.itemAnimator = null
+                filterAppsByPage(nextPageId, pages)
+                rv.scrollToPosition(0)
+                rv.post { rv.itemAnimator = savedAnimator }
+                rv.animate()
+                    .alpha(1f)
+                    .setDuration(fadeInMs)
+                    .setInterpolator(FastOutSlowInInterpolator())
+                    .start()
+            }
+            .start()
     }
 
     private fun filterAppsByPage(pageId: Int?, pages: List<FolderInfo>) {
+        ensurePageKeyCache(pages)
         if (pageId == null) {
-            mainApps.updateItemFilter(null)
+            val hiddenKeys = pages
+                .filter { it.hideFromAll }
+                .flatMapTo(mutableSetOf()) { pageKeySetCache[it.id] ?: emptySet() }
+            if (hiddenKeys.isEmpty()) {
+                mainApps.updateItemFilter(null)
+            } else {
+                mainApps.updateItemFilter { info ->
+                    info is com.android.launcher3.model.data.AppInfo && info.toComponentKey() !in hiddenKeys
+                }
+            }
             return
         }
-        val page = pages.find { it.id == pageId } ?: return
-        val pageAppKeys = page.getContents().mapNotNull { it.componentKey }.toSet()
+        val pageAppKeys = pageKeySetCache[pageId] ?: return
         mainApps.updateItemFilter { info ->
             info is com.android.launcher3.model.data.AppInfo && info.toComponentKey() in pageAppKeys
+        }
+    }
+
+    private fun ensurePageKeyCache(pages: List<FolderInfo>) {
+        if (pages === pageKeySetCacheSource) return
+        pageKeySetCacheSource = pages
+        pageKeySetCache = pages.associate { page ->
+            page.id to page.getContents().mapNotNullTo(mutableSetOf()) { it.componentKey }
+        }
+    }
+
+    private fun updatePageTitle(selectedPageId: Int?, pages: List<FolderInfo>) {
+        if (!::pageTitle.isInitialized) return
+        if (selectedPageId == null) {
+            pageTitle.text = "All Apps"
+        } else {
+            val page = pages.find { it.id == selectedPageId }
+            pageTitle.text = page?.title?.toString() ?: "All Apps"
         }
     }
 
@@ -418,8 +671,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
             CreatePageSheet(
                 existingPages = pages,
-                onCreate = { name ->
-                    viewModel.createPage(name)
+                onCreate = { name, icon, iconOnly, hideFromAll ->
+                    viewModel.createPage(name, icon, iconOnly, hideFromAll)
                     close(true)
                 },
                 onDismiss = { close(true) },
@@ -436,8 +689,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             RenamePageSheet(
                 page = page,
                 existingPages = pages,
-                onRename = { name ->
-                    viewModel.renamePage(page.id, name)
+                onRename = { name, icon, iconOnly, hideFromAll ->
+                    viewModel.renamePage(page.id, name, icon, iconOnly, hideFromAll)
                     close(true)
                 },
                 onDelete = {
@@ -483,8 +736,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         val allApps = appsStore?.getApps() ?: return
         val appList = allApps
             .filter { it.componentKey != null && it.componentKey !in existingKeys }
-            .map { AppListItem(it.componentKey!!, it.title?.toString() ?: "Unknown") }
-            .sortedBy { it.label.lowercase() }
+            .map { AppListItem(it.componentKey!!, it.title?.toString() ?: "Unknown", it.bitmap?.icon) }
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
         ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
             AddAppsToPageSheet(
@@ -497,6 +750,57 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 onDismiss = { close(true) },
             )
         }
+    }
+
+    private fun showAiSortSheet(pages: List<FolderInfo>) {
+        val application = context.applicationContext as android.app.Application
+        val aiViewModel = androidx.lifecycle.ViewModelProvider(
+            launcher.viewModelStore,
+            androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(application),
+        ).get("ai_sort", app.lawnchair.ai.AiSortViewModel::class.java)
+
+        val allApps: List<com.android.launcher3.model.data.AppInfo> =
+            appsView.appsStore?.getApps()?.filter { it.componentKey != null } ?: emptyList()
+
+        aiViewModel.reset(allApps, pages)
+
+        ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
+            val isDark = com.android.launcher3.Utilities.isDarkTheme(context)
+            app.lawnchair.ui.theme.LawnchairTheme(darkTheme = isDark) {
+                val state by aiViewModel.state.collectAsState()
+                app.lawnchair.allapps.pages.AiSortSheetContent(
+                    state = state,
+                    onApiKeySave = { key -> aiViewModel.saveApiKeyAndContinue(key) },
+                    onSortModeSelected = { sortUnassigned -> aiViewModel.startSort(sortUnassigned) },
+                    onPageNameChange = { index, name -> aiViewModel.updatePageName(index, name) },
+                    onTogglePageIncluded = { index -> aiViewModel.togglePageIncluded(index) },
+                    onReassignApp = { from, app, to -> aiViewModel.reassignApp(from, app, to) },
+                    onApply = { aiViewModel.applyProposal() },
+                    onRetry = { aiViewModel.retry() },
+                    onDismiss = { close(true) },
+                )
+            }
+        }
+    }
+
+    private fun showIconStyleSheet() {
+        val prefs2 = app.lawnchair.preferences2.PreferenceManager2.getInstance(context.applicationContext)
+        ComposeBottomSheet.show(context as com.android.launcher3.Launcher) {
+            app.lawnchair.allapps.pages.IconStyleSheet(
+                currentShowLabels = prefs2.showIconLabelsInDrawer.firstBlockingCached(),
+                onSelect = { showLabels ->
+                    kotlinx.coroutines.MainScope().launch {
+                        prefs2.showIconLabelsInDrawer.set(showLabels)
+                    }
+                    close(true)
+                },
+                onDismiss = { close(true) },
+            )
+        }
+    }
+
+    private fun wipeAllPages(viewModel: DrawerPageViewModel) {
+        viewModel.wipePages()
     }
 
     private fun setupPadding() {
@@ -531,7 +835,8 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         val currentPaddingLeft = paddingLeft
         val currentPaddingRight = paddingRight
 
-        ValueAnimator.ofFloat(0f, 1f).apply {
+        paddingAnimator?.cancel()
+        paddingAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 300
             interpolator = FastOutSlowInInterpolator()
             addUpdateListener { animation ->
@@ -560,7 +865,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         if (canShowHint &&
             inputLowerCase.isNotEmpty() &&
             focusedLowerCase.isNotEmpty() &&
-            focusedLowerCase.matches(Regex("^[\\x00-\\x7F]*$")) &&
+            focusedLowerCase.all { it.code < 128 } &&
             focusedLowerCase.startsWith(inputLowerCase)
         ) {
             val hintColor = Themes.getAttrColor(context, android.R.attr.textColorTertiary)
@@ -575,6 +880,12 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     override fun onGlobalLayout() {
         canShowHint = input.layout?.getEllipsisCount(0) == 0
+        // Only scan for new RecyclerViews if the primary one hasn't been bound yet.
+        // findAllRecyclerViews traverses the full view hierarchy — running it on every
+        // layout pass is expensive and unnecessary once the drawer RVs are registered.
+        if (drawerPagesEnabled && pageTransitionRv == null) {
+            setupRecyclerListeners()
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -588,6 +899,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        paddingAnimator?.cancel()
+        paddingAnimator = null
+        if (drawerPagesEnabled) hideTabBar()
         launcher.deviceProfile.inv.removeOnChangeListener(this)
         if (::appsView.isInitialized) {
             appsView.appsStore?.removeUpdateListener(this)
@@ -597,6 +911,11 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     override fun onAppsUpdated() {
         searchBarController.refreshSearchResult()
+        drawerPageViewModel?.let { vm ->
+            if (!vm.isBulkSelectMode.value) {
+                filterAppsByPage(vm.selectedPageId.value, vm.pages.value)
+            }
+        }
     }
 
     override fun initializeSearch(appsView: ActivityAllAppsContainerView<*>) {
@@ -613,13 +932,17 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         )
         input.initialize(appsView)
 
-        if (prefs2.enableDrawerPages.firstBlocking()) {
+        if (prefs2.enableDrawerPages.firstBlockingCached()) {
             showTabBar()
         }
     }
 
     override fun resetSearch() {
         searchBarController.reset()
+        drawerPageViewModel?.let { vm ->
+            vm.selectPage(null)
+            filterAppsByPage(null, vm.pages.value)
+        }
     }
 
     override fun preDispatchKeyEvent(event: KeyEvent) {
@@ -683,29 +1006,10 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     override fun getEditText() = input
 
     override fun setBackgroundVisibility(visible: Boolean, maxAlpha: Float) {
-        if (bgVisible != visible) {
-            bgVisible = visible
-            bgAlpha = maxAlpha
-            if (visible) {
-                bgAlphaAnimator.start()
-            } else {
-                bgAlphaAnimator.reverse()
-            }
-        } else if (bgAlpha != maxAlpha && !bgAlphaAnimator.isRunning && visible) {
-            bgAlpha = maxAlpha
-            bgAlphaAnimator.setCurrentFraction(maxAlpha)
-            updateBgAlpha()
-        }
+        bg.alpha = 255
     }
 
-    override fun getBackgroundVisibility(): Boolean {
-        return bgVisible
-    }
-
-    private fun updateBgAlpha() {
-        val fraction = bgAlphaAnimator.animatedFraction
-        bg.alpha = (Utilities.mapRange(fraction, 0f, bgAlpha) * 255).toInt()
-    }
+    override fun getBackgroundVisibility() = true
 
     override fun onIdpChanged(modelPropertiesChanged: Boolean) {
         setupPadding()

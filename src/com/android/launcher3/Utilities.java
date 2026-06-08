@@ -156,10 +156,12 @@ public final class Utilities {
     @ChecksSdkIntAtLeast(api = VERSION_CODES.BAKLAVA)
     public static final boolean ATLEAST_BAKLAVA = Build.VERSION.SDK_INT >= VERSION_CODES.BAKLAVA;
 
+    // Build.VERSION_CODES_FULL.BAKLAVA_1 is not exposed in the public SDK; the integer value
+    // 3600001 encodes SDK_INT_FULL as (major * 100000 + minor), i.e. Android 16 QPR1.
     @ChecksSdkIntAtLeast(api = 36, codename = "BAKLAVA_1")
-    public static final boolean ATLEAST_BAKLAVA_1 = 
-            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) 
-                && (Build.VERSION.SDK_INT_FULL >= 3600001); // pE-TODO(): Why Build.VERSION_CODES_FULL.BAKLAVA_1 failed?
+    public static final boolean ATLEAST_BAKLAVA_1 =
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA)
+                && (Build.VERSION.SDK_INT_FULL >= 3600001);
 
     /**
      * Set on a motion event dispatched from the nav bar. See {@link MotionEvent#setEdgeFlags(int)}.

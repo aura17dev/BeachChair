@@ -24,15 +24,14 @@
     android:layout_marginTop="@dimen/all_apps_tabs_margin_top"
     android:orientation="horizontal"
     style="@style/TextHeadline"
+    android:padding="4dp"
     launcher:alignOnIcon="true">
 
     <Button
         android:id="@+id/tab_personal"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_marginEnd="@dimen/all_apps_tabs_button_horizontal_padding"
         android:layout_weight="1"
-        android:background="@drawable/all_apps_tabs_background"
         android:text="@string/all_apps_personal_tab"
         android:contentDescription="@string/all_apps_personal_tab_content_description"
         android:textColor="@color/all_apps_tab_text"
@@ -43,9 +42,7 @@
         android:id="@+id/tab_work"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_marginStart="@dimen/all_apps_tabs_button_horizontal_padding"
         android:layout_weight="1"
-        android:background="@drawable/all_apps_tabs_background"
         android:text="@string/all_apps_work_tab"
         android:contentDescription="@string/all_apps_work_tab_content_description"
         android:textColor="@color/all_apps_tab_text"

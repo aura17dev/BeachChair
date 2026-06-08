@@ -47,7 +47,6 @@ import app.lawnchair.ui.preferences.components.colorpreference.ColorPreference
 import app.lawnchair.ui.preferences.components.controls.SliderPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreference
 import app.lawnchair.ui.preferences.components.controls.SwitchPreferenceWithPreview
-import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.navigation.AppDrawerHiddenApps
@@ -71,13 +70,7 @@ fun AppDrawerPreferences(
         backArrowVisible = !LocalIsExpandedScreen.current,
         modifier = modifier,
     ) {
-        val drawerListAdapter = prefs.drawerList.getAdapter()
-        Column {
-            DrawerLayoutPreference(drawerListAdapter)
-            ExpandAndShrink(visible = drawerListAdapter.state.value) {
-                AppDrawerFolderPreferenceItem()
-            }
-        }
+            DrawerLayoutPreference(prefs2.enableDrawerPages.getAdapter())
         val hiddenApps = prefs2.hiddenApps.getAdapter().state.value
         PreferenceGroup(heading = stringResource(id = R.string.general_label)) {
             Item {
@@ -88,6 +81,7 @@ fun AppDrawerPreferences(
                 )
             }
             Item { SearchBarPreference(SearchRoute.DRAWER_SEARCH, showLabel = false) }
+            Item { AppDrawerFolderPreferenceItem() }
             SuggestionsPreference()
             AppDrawerHapticFeedbackPreference()
         }
@@ -198,17 +192,33 @@ fun AppDrawerPreferences(
                 )
             }
         }
+        PreferenceGroup(heading = "AI Sort") {
+            Item {
+                app.lawnchair.ui.preferences.components.controls.TextPreference(
+                    label = "DeepSeek API Key",
+                    description = { if (it.isBlank()) "Tap to set. Get yours at platform.deepseek.com" else "sk-…${it.takeLast(4)}" },
+                    adapter = prefs2.deepSeekApiKey.getAdapter(),
+                )
+            }
+            Item {
+                SwitchPreference(
+                    label = "Auto-sort new apps",
+                    description = "When a new app is installed, automatically assign it to the best matching drawer page",
+                    adapter = prefs2.aiAutoSortNewApps.getAdapter(),
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun DrawerLayoutPreference(drawerListAdapter: PreferenceAdapter<Boolean>) {
+private fun DrawerLayoutPreference(enableDrawerPagesAdapter: PreferenceAdapter<Boolean>) {
     SwitchPreferenceWithPreview(
         label = stringResource(id = R.string.layout),
-        checked = !drawerListAdapter.state.value,
-        onCheckedChange = { drawerListAdapter.onChange(!it) },
+        adapter = enableDrawerPagesAdapter,
         disabledLabel = stringResource(id = R.string.feed_default),
         disabledContent = {
+            // Search bar
             Box(
                 modifier = Modifier
                     .height(24.dp)
@@ -218,27 +228,25 @@ private fun DrawerLayoutPreference(drawerListAdapter: PreferenceAdapter<Boolean>
                         RoundedCornerShape(16.dp),
                     ),
             )
-
-            Column(modifier = Modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    repeat(4) {
-                        Box(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    CircleShape,
-                                ),
-                        )
-                    }
+            // App icon row
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(4) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape,
+                            ),
+                    )
                 }
             }
         },
-        enabledLabel = stringResource(id = R.string.caddy_beta),
+        enabledLabel = stringResource(id = R.string.beach_drawer_pages_label),
         enabledContent = {
+            // Search bar
             Box(
                 modifier = Modifier
                     .height(24.dp)
@@ -248,30 +256,43 @@ private fun DrawerLayoutPreference(drawerListAdapter: PreferenceAdapter<Boolean>
                         RoundedCornerShape(16.dp),
                     ),
             )
-            Row(modifier = Modifier, horizontalArrangement = Arrangement.SpaceBetween) {
+            // App icon row
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(4) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape,
+                            ),
+                    )
+                }
+            }
+            // Page tab indicators: one active pill + two inactive dots
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 18.dp, height = 5.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(3.dp),
+                        ),
+                )
                 repeat(2) {
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier) {
-                        repeat(2) {
-                            Row(
-                                modifier = Modifier,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                repeat(2) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.surfaceVariant,
-                                                CircleShape,
-                                            ),
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                CircleShape,
+                            ),
+                    )
                 }
             }
         },

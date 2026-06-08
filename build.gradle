@@ -15,6 +15,7 @@ plugins {
     alias(libs.plugins.cash.licensee)
     alias(libs.plugins.rikka.refine)
     alias(libs.plugins.diffplug.spotless)
+    alias(libs.plugins.google.secrets)
 }
 
 allprojects {
@@ -349,6 +350,12 @@ composeCompiler {
     reportsDestination = layout.buildDirectory.dir("compose_build_reports")
 }
 
+secrets {
+    propertiesFileName = "local.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
+    ignoreList.add("sdk\\.dir")
+}
+
 addFrameworkJar('framework-16.jar')
 
 dependencies {
@@ -388,6 +395,7 @@ dependencies {
 //    withQuickstepImplementation projects.compose
     withQuickstepImplementation projects.modules.widgetpicker
     implementation libs.androidx.dynamicanimation
+    implementation "com.composables:icons-lucide:1.1.0"
 
     implementation fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'SystemUI-statsd-16.jar')
     implementation fileTree(dir: FRAMEWORK_PREBUILTS_DIR, include: 'WindowManager-Shell-16.jar')
@@ -503,6 +511,7 @@ licensee {
     allowUrl("https://github.com/patrykmichalik/opto/blob/master/LICENSE")
     allowUrl("https://github.com/RikkaApps/HiddenApiRefinePlugin/blob/main/LICENSE")
     allowUrl("https://opensource.org/licenses/mit-license.php")
+    allowUrl("https://github.com/composablehorizons/composeicons/blob/main/LICENSE")
 
     bundleAndroidAsset = true
     androidAssetReportPath = 'licenses.json'

@@ -6,6 +6,7 @@ import android.util.Log
 import app.lawnchair.preferences2.PreferenceManager2
 import com.android.launcher3.R
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -48,9 +49,9 @@ object CustomWebSearchProvider : WebSearchProvider {
 
     override fun configure(context: Context): WebSearchProvider {
         val prefs = PreferenceManager2.getInstance(context)
-        searchUrlTemplate = prefs.webSuggestionProviderUrl.firstBlocking()
-        suggestionsUrlTemplate = prefs.webSuggestionProviderSuggestionsUrl.firstBlocking()
-        displayName = prefs.webSuggestionProviderName.firstBlocking()
+        searchUrlTemplate = prefs.webSuggestionProviderUrl.firstBlockingCached()
+        suggestionsUrlTemplate = prefs.webSuggestionProviderSuggestionsUrl.firstBlockingCached()
+        displayName = prefs.webSuggestionProviderName.firstBlockingCached()
         return this
     }
 

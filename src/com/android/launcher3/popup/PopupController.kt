@@ -45,7 +45,13 @@ interface PopupController {
          * @return a new PopupController.
          */
         fun createPopupControllerFactory(itemInfo: ItemInfo): PopupController {
-            return TODO("Provide the return value")
+            // A view reference is required to position the popup; construct
+            // BubbleTextViewPopupController(view) directly from the icon view.
+            throw UnsupportedOperationException(
+                "createPopupControllerFactory cannot position a popup without a view reference. " +
+                    "Instantiate BubbleTextViewPopupController(view) directly from the icon view.",
+            )
         }
     }
 }
+

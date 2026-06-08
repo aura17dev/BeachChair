@@ -45,7 +45,6 @@ import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.R
 import com.android.launcher3.proxy.ProxyActivityStarter
-import com.android.launcher3.secondarydisplay.SecondaryDisplayLauncher
 import com.android.launcher3.uioverrides.plugins.PluginManagerWrapperImpl
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.ORDERED_BG_EXECUTOR
@@ -350,16 +349,6 @@ class DevOptionsUiHelper(c: Context, attr: AttributeSet?) : PreferenceGroup(c, a
             )
         }
 
-        newCategory("Other activity targets").apply {
-            addPreference(
-                Preference(context).apply {
-                    title = "Launch Secondary Display"
-                    intent =
-                        Intent(context, SecondaryDisplayLauncher::class.java)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        }
     }
 
     private fun addOnboardingPrefsCategory() {

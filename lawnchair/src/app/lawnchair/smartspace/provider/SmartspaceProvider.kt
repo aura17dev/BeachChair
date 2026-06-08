@@ -75,9 +75,7 @@ class SmartspaceProvider @Inject constructor(
             }
     }
 
-    override fun close() {
-        TODO("Not yet implemented")
-    }
+    override fun close() = Unit
 
     companion object {
         @JvmField val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getSmartspaceProvider)

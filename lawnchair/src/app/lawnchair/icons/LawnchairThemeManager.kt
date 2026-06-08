@@ -17,10 +17,12 @@ import com.android.launcher3.util.DaggerSingletonTracker
 import com.android.launcher3.util.Executors
 import com.android.launcher3.util.LooperExecutor
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
@@ -65,7 +67,8 @@ constructor(
             prefs2.customIconShape.get(),
             prefs2.folderShape.get(),
             prefs2.customFolderShape.get(),
-        ).onEach { verifyIconState() }
+        ).distinctUntilChanged()
+            .onEach { verifyIconState() }
             .launchIn(scope)
 
         statePrefs1.forEach { it.addListener(prefListener) }
@@ -99,14 +102,14 @@ constructor(
 
     private fun parseIconStateV2(oldState: IconState?): IconState {
         val currentAppShape: IconShape = try {
-            prefs2.iconShape.firstBlocking()
+            prefs2.iconShape.firstBlockingCached()
         } catch (e: Exception) {
             Log.d(TAG, "Error getting icon shape", e)
             IconShape.Circle
         }
 
         val currentFolderShape: IconShape = try {
-            prefs2.folderShape.firstBlocking()
+            prefs2.folderShape.firstBlockingCached()
         } catch (e: Exception) {
             Log.d(TAG, "Error getting folder shape", e)
             IconShape.Circle

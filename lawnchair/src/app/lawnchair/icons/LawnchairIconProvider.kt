@@ -77,11 +77,13 @@ class LawnchairIconProvider @Inject constructor(
             if (_themeMap == null) {
                 _themeMap = getThemedIconMap()
             }
-            if (themedIconSource != null && themeMapName == "") {
+            // Resolve once — each access reads a pref + does a map lookup + loadBlocking check.
+            val src = themedIconSource
+            if (src != null && themeMapName == "") {
                 _themeMap = super.getThemedIconMap()
             }
-            if (themedIconSource != null && themeMapName != themedIconSource!!.packPackageName) {
-                themeMapName = themedIconSource!!.packPackageName
+            if (src != null && themeMapName != src.packPackageName) {
+                themeMapName = src.packPackageName
                 _themeMap = getThemedIconMap()
             }
             return _themeMap!!
@@ -184,13 +186,21 @@ class LawnchairIconProvider @Inject constructor(
 
     override fun getStateForApp(info: ApplicationInfo?): String {
         val base = super.getStateForApp(info)
+        val overrideSignature = if (info != null) {
+            overrideRepo.overridesMap.entries
+                .filter { it.key.componentName.packageName == info.packageName }
+                .sortedBy { it.key.componentName.className }
+                .joinToString(",") { "${it.key.componentName.className}=${it.value.hashCode()}" }
+                .ifEmpty { "none" }
+        } else "unknown"
         return "$base|lc:" +
             "ip=${iconPackPref.get()}," +
             "tip=${themedIconSourcePref.get()}," +
             "ti=${prefs.themedIcons.get()}," +
             "dti=${prefs.drawerThemedIcons.get()}," +
             "fm=${prefs.forceIconMonochrome.get()}," +
-            "tb=${prefs.tintIconPackBackgrounds.get()}"
+            "tb=${prefs.tintIconPackBackgrounds.get()}," +
+            "ov=$overrideSignature"
     }
 
     override fun getThemeDataForPackage(packageName: String?): ThemeData? {

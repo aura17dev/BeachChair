@@ -58,6 +58,7 @@ import com.android.launcher3.views.ActivityContext;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import app.lawnchair.theme.color.ColorOption;
 import app.lawnchair.theme.color.tokens.ColorTokens;
 import app.lawnchair.util.LawnchairUtilsKt;
@@ -191,7 +192,7 @@ public class PreviewBackground extends DelegatedCellDrawing {
         PreferenceManager2 preferenceManager2 = PreferenceManager2.INSTANCE.get(context);
 
         // Load folder color
-        ColorOption colorOption = PreferenceExtensionsKt.firstBlocking(preferenceManager2.getFolderColor());
+        ColorOption colorOption = PreferenceManager2Kt.firstBlockingCached(preferenceManager2.getFolderColor());
         int folderColor = colorOption.getColorPreferenceEntry().getLightColor().invoke(context);
 
         TypedArray ta = context.getTheme().obtainStyledAttributes(R.styleable.FolderIconPreview);

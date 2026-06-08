@@ -151,18 +151,15 @@ public class TaskbarDragLayer extends BaseDragLayer<TaskbarActivityContext> {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         getViewTreeObserver().addOnComputeInternalInsetsListener(mTaskbarInsetsComputer);
-//        if (Utilities.ATLEAST_U) {
-//            mViewCaptureCloseable = SettingsAwareViewCapture.getInstance(getContext())
-//                    .startCapture(getRootView(), ".Taskbar"); // pE-TODO(QuickSwitch-Baklava): Investigate
-//        }
+// ViewCapture for Taskbar is disabled: SettingsAwareViewCapture is internal to the viewcapture
+// module and the public factory (ViewCaptureFactory) currently produces a no-op instance.
+// Re-enable once ViewCaptureFactory exposes a usable getInstance() for Android U+.
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow(); 
-//        if (Utilities.ATLEAST_U) { // pE-TODO(QuickSwitch-Baklava): Investigate
-//            mViewCaptureCloseable.close();
-//        }
+// mViewCaptureCloseable.close() — disabled alongside startCapture above.
         onDestroy(true);
     }
 

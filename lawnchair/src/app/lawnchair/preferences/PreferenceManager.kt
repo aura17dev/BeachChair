@@ -68,6 +68,7 @@ class PreferenceManager @Inject constructor(
     val shadowBGIcons = BoolPref("pref_shadowBGIcons", true)
     val addIconToHome = BoolPref("pref_add_icon_to_home", true)
     val hotseatColumns = IntPref("pref_hotseatColumns", 4, reloadGrid)
+    val hotseatRows = IntPref("pref_hotseatRows", 1, reloadGrid)
     val workspaceColumns = IntPref("pref_workspaceColumns", 4)
     val workspaceRows = IntPref("pref_workspaceRows", 7)
     val workspaceIncreaseMaxGridSize = BoolPref("pref_workspace_increase_max_grid_size", false)
@@ -100,7 +101,6 @@ class PreferenceManager @Inject constructor(
     val fontBody = FontPref("pref_fontBody", fontCache.uiText, recreate)
     val fontBodyMedium = FontPref("pref_fontBodyMedium", fontCache.uiTextMedium, recreate)
 
-    // TODO REMOVE
     val deviceSearch = BoolPref("device_search", false, recreate)
     val searchResultShortcuts = BoolPref("pref_searchResultShortcuts", false)
     val searchResultPeople = BoolPref("pref_searchResultPeople", false, recreate)
@@ -161,7 +161,7 @@ class PreferenceManager @Inject constructor(
     val forceIconMonochrome = BoolPref("pref_forceIconMonochrome", false)
 
     override fun close() {
-        TODO("Not yet implemented")
+        sp.unregisterOnSharedPreferenceChangeListener(this)
     }
 
     init {

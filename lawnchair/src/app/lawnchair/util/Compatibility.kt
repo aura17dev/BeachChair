@@ -54,7 +54,10 @@ private fun checkMeizuStock(): Boolean = when {
 
 private fun checkGestureNavContract(): Boolean = when {
     !Utilities.ATLEAST_Q -> false
-    checkOnePlusStock() -> false
+    // OnePlus/OxygenOS is intentionally NOT excluded: many OxygenOS builds do send the
+    // GestureNavContract extra, which gives the app->home icon-morph. handleGestureContract()
+    // self-corrects by no-op'ing when GestureNavContract.fromIntent() returns null, so on builds
+    // that don't send it we simply fall back with no jank. Users can still toggle it off.
     checkSamsungStock() -> false
     checkXiaomiStock() -> false
     checkHuaweiHonorStock() -> false

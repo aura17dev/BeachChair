@@ -1,10 +1,11 @@
-﻿package app.lawnchair.data.wallpaper.service
+package app.lawnchair.data.wallpaper.service
 
 import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import android.util.Log
 import androidx.core.graphics.drawable.toBitmap
+import androidx.room.withTransaction
 import app.lawnchair.data.AppDatabase
 import app.lawnchair.data.wallpaper.Wallpaper
 import app.lawnchair.util.bitmapToByteArray
@@ -17,14 +18,16 @@ import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
 import javax.inject.Inject
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @LauncherAppSingleton
 class WallpaperService @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : SafeCloseable {
 
-    val dao = AppDatabase.Companion.INSTANCE.get(context).wallpaperDao()
+    private val db = AppDatabase.INSTANCE.get(context)
+    val dao = db.wallpaperDao()
 
     suspend fun saveWallpaper(wallpaperManager: WallpaperManager) {
         try {
@@ -47,70 +50,74 @@ class WallpaperService @Inject constructor(
 
     private suspend fun saveWallpaper(imageData: ByteArray) {
         val timestamp = System.currentTimeMillis()
-
         val checksum = calculateChecksum(imageData)
-
-        val existingWallpapers = dao.getTopWallpapers()
+        val existingWallpapers = withContext(Dispatchers.IO) { dao.getTopWallpapers() }
 
         if (existingWallpapers.any { it.checksum == checksum }) {
             Log.d("WallpaperService", "Wallpaper already exists with checksum: $checksum")
             return
         }
+
         val imagePath = saveImageToAppStorage(imageData)
-        if (existingWallpapers.size < 4) {
-            val wallpaper = Wallpaper(
-                imagePath = imagePath,
-                rank = existingWallpapers.size,
-                timestamp = timestamp,
-                checksum = checksum,
-            )
-            dao.insert(wallpaper)
-        } else {
-            val lowestRankedWallpaper = existingWallpapers.minByOrNull { it.timestamp }
 
-            if (lowestRankedWallpaper != null) {
-                dao.deleteWallpaper(lowestRankedWallpaper.id)
-                deleteWallpaperFile(lowestRankedWallpaper.imagePath)
-            }
-
-            for (wallpaper in existingWallpapers) {
-                if (wallpaper.rank >= (lowestRankedWallpaper?.rank ?: 0)) {
-                    dao.updateRank(wallpaper.rank)
+        var evictedPath: String? = null
+        db.withTransaction {
+            if (existingWallpapers.size < 4) {
+                dao.insert(
+                    Wallpaper(
+                        imagePath = imagePath,
+                        rank = existingWallpapers.size,
+                        timestamp = timestamp,
+                        checksum = checksum,
+                    ),
+                )
+            } else {
+                val lowestRanked = existingWallpapers.minByOrNull { it.timestamp }
+                if (lowestRanked != null) {
+                    evictedPath = lowestRanked.imagePath
+                    dao.deleteWallpaper(lowestRanked.id)
+                    for (wallpaper in existingWallpapers) {
+                        if (wallpaper.rank >= lowestRanked.rank) {
+                            dao.updateRank(wallpaper.rank)
+                        }
+                    }
                 }
+                dao.insert(
+                    Wallpaper(
+                        imagePath = imagePath,
+                        rank = 0,
+                        timestamp = timestamp,
+                        checksum = checksum,
+                    ),
+                )
             }
-
-            val wallpaper = Wallpaper(
-                imagePath = imagePath,
-                rank = 0,
-                timestamp = timestamp,
-                checksum = checksum,
-            )
-            dao.insert(wallpaper)
         }
+
+        evictedPath?.let { deleteWallpaperFile(it) }
     }
 
     suspend fun updateWallpaperRank(selectedWallpaper: Wallpaper) {
-        val topWallpapers = dao.getTopWallpapers()
+        val topWallpapers = withContext(Dispatchers.IO) { dao.getTopWallpapers() }
         val currentTime = System.currentTimeMillis()
 
-        dao.updateWallpaper(selectedWallpaper.id, rank = 0, timestamp = currentTime)
-
-        for (wallpaper in topWallpapers) {
-            if (wallpaper.id != selectedWallpaper.id) {
-                dao.updateRank(wallpaper.rank)
+        db.withTransaction {
+            dao.updateWallpaper(selectedWallpaper.id, rank = 0, timestamp = currentTime)
+            for (wallpaper in topWallpapers) {
+                if (wallpaper.id != selectedWallpaper.id) {
+                    dao.updateRank(wallpaper.rank)
+                }
             }
         }
     }
 
-    fun getTopWallpapers(): List<Wallpaper> = runBlocking {
-        val wallpapers = dao.getTopWallpapers()
-        wallpapers.ifEmpty { emptyList() }
+    suspend fun getTopWallpapers(): List<Wallpaper> = withContext(Dispatchers.IO) {
+        dao.getTopWallpapers()
     }
 
     private fun deleteWallpaperFile(imagePath: String) {
         val file = File(imagePath)
-        if (file.exists()) {
-            file.delete()
+        if (file.exists() && !file.delete()) {
+            Log.w("WallpaperService", "Failed to delete wallpaper file: $imagePath")
         }
     }
 
@@ -133,8 +140,9 @@ class WallpaperService @Inject constructor(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        // No open resources or coroutine scopes to clean up.
     }
+
     companion object {
         @JvmField
         val INSTANCE = DaggerSingletonObject(LauncherAppComponent::getWallpaperService)

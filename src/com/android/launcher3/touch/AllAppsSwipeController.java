@@ -46,6 +46,7 @@ import com.android.launcher3.LauncherState;
 import com.android.launcher3.states.StateAnimationConfig;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 /**
@@ -263,8 +264,8 @@ public class AllAppsSwipeController extends AbstractStateChangeTouchController {
     public static void applyNormalToAllAppsAnimConfig(
             Launcher launcher, StateAnimationConfig config) {
         PreferenceManager2 prefs = PreferenceManager2.getInstance(launcher);
-        boolean overshoot = PreferenceExtensionsKt.firstBlocking(prefs.getDrawerOvershoot());
-        boolean pixelated = PreferenceExtensionsKt.firstBlocking(prefs.getPixelatedFade());
+        boolean overshoot = PreferenceManager2Kt.firstBlockingCached(prefs.getDrawerOvershoot());
+        boolean pixelated = PreferenceManager2Kt.firstBlockingCached(prefs.getPixelatedFade());
         if (launcher.getDeviceProfile().shouldShowAllAppsOnSheet()) {
             config.setInterpolator(ANIM_ALL_APPS_FADE, pixelated ? PIXELATED_FADE : INSTANT);
             config.setInterpolator(ANIM_SCRIM_FADE, ALL_APPS_SCRIM_RESPONDER);

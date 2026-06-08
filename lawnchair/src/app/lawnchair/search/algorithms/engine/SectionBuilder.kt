@@ -7,6 +7,7 @@ import app.lawnchair.search.adapter.SearchTargetCompat
 import app.lawnchair.search.adapter.SearchTargetFactory
 import com.android.launcher3.R
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 
 sealed interface SectionBuilder {
     /**
@@ -131,7 +132,7 @@ data object HistorySectionBuilder : SectionBuilder {
         factory: SearchTargetFactory,
         results: List<SearchResult>,
     ): List<SearchTargetCompat> {
-        val webSuggestion = PreferenceManager2.getInstance(context).webSuggestionProvider.firstBlocking()
+        val webSuggestion = PreferenceManager2.getInstance(context).webSuggestionProvider.firstBlockingCached()
 
         val history = results.filterIsInstance<SearchResult.History>()
         if (history.isEmpty()) {

@@ -127,7 +127,9 @@ constructor(
     }
 
     fun initialize() {
-        if (!this::taskView.isInitialized) return // pE-TODO(QuickSwitch-Baklava): Investigate
+        // taskView is a lateinit property set via setTaskView(); bail if initialize() is called
+        // before the view is attached (can happen during rapid recents transitions on Baklava).
+        if (!this::taskView.isInitialized) return
         check(!isDestroyed) { "Cannot re-initialize a destroyed toast" }
         setupTranslations()
         Executors.ORDERED_BG_EXECUTOR.execute {

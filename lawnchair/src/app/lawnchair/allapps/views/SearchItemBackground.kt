@@ -9,7 +9,6 @@ import android.view.View
 import app.lawnchair.theme.color.tokens.ColorTokens
 import com.android.launcher3.R
 import com.android.systemui.shared.system.BlurUtils
-import com.android.systemui.util.dpToPx
 
 class SearchItemBackground(
     context: Context,
@@ -39,6 +38,7 @@ class SearchItemBackground(
     } else {
         0
     }
+    private val strokeColor = ColorTokens.SearchboxStroke.resolveColor(context)
 
     val cornerRadii: FloatArray
 
@@ -61,6 +61,17 @@ class SearchItemBackground(
         )
     }
 
+    private val density = resources.displayMetrics.density
+
+    // null when strokeColor is transparent — skips the second drawPath call per frame.
+    private val strokePaint: Paint? = if (strokeColor != 0) {
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = density
+            color = strokeColor
+        }
+    } else null
+
     fun draw(c: Canvas, child: View, isFocused: Boolean) {
         val color = if (isFocused) focusHighlight else groupHighlight
         if (color == 0) return
@@ -73,7 +84,6 @@ class SearchItemBackground(
         var bottom = child.bottom.toFloat() - searchDecorationPadding
 
         if (child is SearchResultIcon) {
-            val density = child.resources.displayMetrics.density
             val iconSize = child.iconSize.toFloat()
             val desiredWidth = iconSize + 48f * density
             val cellWidth = child.width.toFloat()
@@ -93,5 +103,6 @@ class SearchItemBackground(
         tmpPath.addRoundRect(tmpRect, cornerRadii, Path.Direction.CW)
 
         c.drawPath(tmpPath, paint)
+        strokePaint?.let { c.drawPath(tmpPath, it) }
     }
 }

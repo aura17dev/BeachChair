@@ -53,6 +53,7 @@ import java.util.function.Predicate;
 import app.lawnchair.LawnchairApp;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 /**
  * Class for initiating a drag within a view or across multiple views.
@@ -558,7 +559,7 @@ public abstract class DragController<T extends ActivityContext>
                     dropTarget.onDrop(mDragObject, mOptions);
                 }
                 accepted = true;
-                if (PreferenceExtensionsKt.firstBlocking(pref2.getDeckLayout()) && dropTarget instanceof DeleteDropTarget &&
+                if (PreferenceManager2Kt.firstBlockingCached(pref2.getDeckLayout()) && dropTarget instanceof DeleteDropTarget &&
                         isNeedCancelDrag(mDragObject.dragInfo)) {
                     cancelDrag();
                 }

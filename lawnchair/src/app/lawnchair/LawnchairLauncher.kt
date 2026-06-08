@@ -34,6 +34,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairApp.Companion.showQuickstepWarningIfNecessary
+import app.lawnchair.allapps.DrawerArcDrift
+import app.lawnchair.allapps.DrawerEdgeFade
+import app.lawnchair.allapps.DrawerRowCascade
+import app.lawnchair.allapps.DrawerScrollAnimation
+import app.lawnchair.allapps.DrawerVelocityTilt
 import app.lawnchair.allapps.IconScrollWave
 import app.lawnchair.animation.physicsAnimator
 import app.lawnchair.compat.LawnchairQuickstepCompat
@@ -87,14 +92,19 @@ import com.android.systemui.shared.system.QuickStepContract
 import com.kieronquinn.app.smartspacer.sdk.client.SmartspacerClient
 import com.patrykmichalik.opto.core.firstBlocking
 import com.patrykmichalik.opto.core.onEach
+import app.lawnchair.preferences2.firstBlockingCached
 import dev.kdrag0n.monet.theme.ColorScheme
 import java.util.stream.Stream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class LawnchairLauncher : QuickstepLauncher() {
+class LawnchairLauncher : QuickstepLauncher(), androidx.lifecycle.ViewModelStoreOwner {
+    private val _viewModelStore = androidx.lifecycle.ViewModelStore()
+    override val viewModelStore: androidx.lifecycle.ViewModelStore get() = _viewModelStore
     private val defaultOverlay by unsafeLazy { OverlayCallbackImpl(this) }
     private val prefs by unsafeLazy { PreferenceManager.getInstance(this) }
     private val preferenceManager2 by unsafeLazy { PreferenceManager2.getInstance(this) }
@@ -113,6 +123,18 @@ class LawnchairLauncher : QuickstepLauncher() {
         override fun onStateTransitionComplete(finalState: LauncherState) {
             if (finalState !is OverviewState) {
                 insetsController.hide(WindowInsetsCompat.Type.statusBars())
+            }
+        }
+    }
+    private val hideGestureBarStateListener = object : StateManager.StateListener<LauncherState> {
+        override fun onStateTransitionStart(toState: LauncherState) {
+            if (toState is OverviewState) {
+                insetsController.show(WindowInsetsCompat.Type.navigationBars())
+            }
+        }
+        override fun onStateTransitionComplete(finalState: LauncherState) {
+            if (finalState !is OverviewState) {
+                insetsController.hide(WindowInsetsCompat.Type.navigationBars())
             }
         }
     }
@@ -151,9 +173,12 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    // Cached so we never call firstBlocking() on the main thread during a state transition.
+    @Volatile private var iconBounceEnabled = false
+
     private val iconBounceListener = object : StateManager.StateListener<LauncherState> {
         override fun onStateTransitionStart(toState: LauncherState) {
-            if (toState is AllAppsState && preferenceManager2.iconBounce.firstBlocking()) {
+            if (toState is AllAppsState && iconBounceEnabled) {
                 mAppsView?.activeRecyclerView?.let { rv ->
                     for (i in 0 until rv.childCount) {
                         (rv.getChildAt(i) as? BubbleTextView)?.let {
@@ -165,18 +190,17 @@ class LawnchairLauncher : QuickstepLauncher() {
             }
         }
         override fun onStateTransitionComplete(finalState: LauncherState) {
-            if (finalState is AllAppsState) {
+            if (finalState is AllAppsState && iconBounceEnabled) {
                 mAppsView?.activeRecyclerView?.let { rv ->
-                    val icons = (0 until rv.childCount).mapNotNull { i ->
-                        rv.getChildAt(i) as? BubbleTextView
-                    }
-                    icons.forEachIndexed { index, icon ->
+                    // Iterate in-place — avoids a List allocation (mapNotNull) on every drawer open.
+                    for (i in 0 until rv.childCount) {
+                        val icon = rv.getChildAt(i) as? BubbleTextView ?: continue
                         icon.postDelayed({
                             icon.physicsAnimator
                                 .spring(DynamicAnimation.SCALE_X, 1f, stiffness = 280f)
                                 .spring(DynamicAnimation.SCALE_Y, 1f, stiffness = 280f)
                                 .start()
-                        }, index * 18L)
+                        }, i * 18L)
                     }
                 }
             }
@@ -184,13 +208,17 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     @Volatile
-    private var iconScrollWaveEnabled = true
+    private var activeScrollAnimation = DrawerScrollAnimation.WAVE
 
-    private val iconScrollWaveListener = object : StateManager.StateListener<LauncherState> {
+    private val drawerScrollAnimListener = object : StateManager.StateListener<LauncherState> {
         override fun onStateTransitionStart(toState: LauncherState) {
             if (toState is AllAppsState) {
                 mAppsView?.let { appsView ->
-                    IconScrollWave.install(appsView) { iconScrollWaveEnabled }
+                    IconScrollWave.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.WAVE }
+                    DrawerEdgeFade.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.EDGE_FADE }
+                    DrawerVelocityTilt.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.TILT }
+                    DrawerRowCascade.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.CASCADE }
+                    DrawerArcDrift.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.ARC }
                 }
             }
         }
@@ -204,9 +232,9 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onCreate(savedInstanceState: Bundle?) {
         layoutInflater.factory2 = LawnchairLayoutFactory(this)
         super.onCreate(savedInstanceState)
-        // Ensure the status bar is always transparent so the launcher and immersive
-        // app drawer can draw content behind it (overrides theme's colorBackground default).
+        // Ensure system bars are always transparent so the launcher draws edge-to-edge.
         window?.statusBarColor = Color.TRANSPARENT
+        window?.navigationBarColor = Color.TRANSPARENT
 
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
         prefs.feedProvider.subscribeChanges(this, defaultOverlay::reconnect)
@@ -215,9 +243,12 @@ class LawnchairLauncher : QuickstepLauncher() {
         }.launchIn(scope = lifecycleScope)
         launcher.stateManager.addStateListener(clearSearchStateListener)
         launcher.stateManager.addStateListener(iconBounceListener)
-        launcher.stateManager.addStateListener(iconScrollWaveListener)
-        preferenceManager2.iconScrollWave.get().distinctUntilChanged().onEach { enabled ->
-            iconScrollWaveEnabled = enabled
+        launcher.stateManager.addStateListener(drawerScrollAnimListener)
+        preferenceManager2.drawerScrollAnimation.get().distinctUntilChanged().onEach { anim ->
+            activeScrollAnimation = anim
+        }.launchIn(scope = lifecycleScope)
+        preferenceManager2.iconBounce.get().distinctUntilChanged().onEach { enabled ->
+            iconBounceEnabled = enabled
         }.launchIn(scope = lifecycleScope)
 
         if (prefs.autoLaunchRoot.get()) {
@@ -242,6 +273,24 @@ class LawnchairLauncher : QuickstepLauncher() {
                     removeStateListener(noStatusBarStateListener)
                 } else {
                     addStateListener(noStatusBarStateListener)
+                }
+            }
+        }.launchIn(scope = lifecycleScope)
+
+        preferenceManager2.hideGestureBar.get().distinctUntilChanged().onEach {
+            with(insetsController) {
+                if (it) {
+                    systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    hide(WindowInsetsCompat.Type.navigationBars())
+                } else {
+                    show(WindowInsetsCompat.Type.navigationBars())
+                }
+            }
+            with(launcher.stateManager) {
+                if (it) {
+                    addStateListener(hideGestureBarStateListener)
+                } else {
+                    removeStateListener(hideGestureBarStateListener)
                 }
             }
         }.launchIn(scope = lifecycleScope)
@@ -301,7 +350,9 @@ class LawnchairLauncher : QuickstepLauncher() {
 
         reloadIconsIfNeeded()
 
-        AppDatabase.INSTANCE.get(this).checkpointSync()
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            AppDatabase.INSTANCE.get(this@LawnchairLauncher).checkpoint()
+        }
 
         lifecycleScope.launch {
             DefaultWallpaperInitializer.applyIfNeeded(this@LawnchairLauncher)
@@ -351,15 +402,8 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     fun bindItems(items: List<ItemInfo>, forceAnimateIcons: Boolean) {
-        // pE-TODO(QPR1): Note: null is modelWriter + bindItems override something
         val inflatedItems = items.map { i ->
-            Pair.create(
-                i,
-                itemInflater?.inflateItem(
-                    i,
-                    null,
-                ),
-            )
+            Pair.create(i, itemInflater?.inflateItem(i))
         }.toList()
         bindInflatedItems(inflatedItems, if (forceAnimateIcons) AnimatorSet() else null)
     }
@@ -385,14 +429,17 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     override fun showDefaultOptions(x: Float, y: Float) {
-        val showWallpaperCarousel = "+carousel" in preferenceManager2.launcherPopupOrder.firstBlocking()
+        val showWallpaperCarousel = "+carousel" in preferenceManager2.launcherPopupOrder.firstBlockingCached()
 
         if (showWallpaperCarousel) {
-            show<LawnchairLauncher>(
-                this,
-                getPopupTarget(x, y),
-                OptionsPopupView.getOptions(this),
-            )
+            val targetRect = getPopupTarget(x, y)
+            val items = OptionsPopupView.getOptions(this)
+            lifecycleScope.launch(Dispatchers.IO) {
+                val isEmpty = WallpaperService.INSTANCE.get(this@LawnchairLauncher).getTopWallpapers().isEmpty()
+                withContext(Dispatchers.Main) {
+                    show<LawnchairLauncher>(this@LawnchairLauncher, targetRect, items, isEmpty = isEmpty)
+                }
+            }
         } else {
             super.showDefaultOptions(x, y)
         }
@@ -404,10 +451,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         items: List<OptionItem>,
         shouldAddArrow: Boolean = false,
         width: Int = 0,
+        isEmpty: Boolean,
     ): OptionsPopupView<T>? where T : Context?, T : ActivityContext? {
         if (activityContext == null) return null
 
-        val isEmpty = WallpaperService.INSTANCE.get(this).getTopWallpapers().isEmpty()
         val layout = if (isEmpty) R.layout.longpress_options_menu else R.layout.wallpaper_options_popup
 
         val popup = activityContext.layoutInflater.inflate(layout, activityContext.dragLayer, false) as OptionsPopupView<T>
@@ -530,6 +577,9 @@ class LawnchairLauncher : QuickstepLauncher() {
 
     override fun onDestroy() {
         super.onDestroy()
+        launcher.stateManager.removeStateListener(iconBounceListener)
+        launcher.stateManager.removeStateListener(drawerScrollAnimListener)
+        _viewModelStore.clear()
         // Only actually closes if required, safe to call if not enabled
         SmartspacerClient.close()
     }
@@ -558,7 +608,7 @@ class LawnchairLauncher : QuickstepLauncher() {
      */
     private fun reloadIconsIfNeeded() {
         if (
-            preferenceManager2.alwaysReloadIcons.firstBlocking()
+            preferenceManager2.alwaysReloadIcons.firstBlockingCached()
         ) {
             LauncherAppState.getInstance(this).model.reloadIfActive()
         }

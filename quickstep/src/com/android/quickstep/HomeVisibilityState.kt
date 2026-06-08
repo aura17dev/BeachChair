@@ -66,7 +66,9 @@ class HomeVisibilityState {
                                     )
                                     .bottom
                             } else {
-                                // pE-TODO(QuickSwitch-Baklava): Investigate
+                                // Pre-Baklava: InsetsState.calculateInsets has a 3-arg signature
+                                // (Rect, @InsetType int, boolean) instead of the 4-arg version
+                                // above. Reflect to stay source-compatible across API levels.
                                 val method = InsetsState::class.java.getMethod(
                                     "calculateInsets",
                                     android.graphics.Rect::class.java,

@@ -77,9 +77,7 @@ class IconPackProvider @Inject constructor(
         return drawable
     }
 
-    override fun close() {
-        TODO("Not yet implemented")
-    }
+    override fun close() = Unit
 
     companion object {
         @JvmField

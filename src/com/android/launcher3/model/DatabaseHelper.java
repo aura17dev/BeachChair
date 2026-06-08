@@ -54,6 +54,7 @@ import com.android.launcher3.util.Thunk;
 import com.android.launcher3.widget.LauncherWidgetHolder;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -259,7 +260,7 @@ public class DatabaseHelper extends NoLocaleSQLiteHelper implements
                         Favorites.SCREEN, IntArray.wrap(-777, -778)), null);
             }
             case 30: {
-                if (PreferenceExtensionsKt.firstBlocking(PreferenceManager2.INSTANCE.get(mContext).getEnableSmartspace())) {
+                if (PreferenceManager2Kt.firstBlockingCached(PreferenceManager2.INSTANCE.get(mContext).getEnableSmartspace())) {
                     // Clean up first row in screen 0 as it might contain junk data.
                     Log.d(TAG, "Cleaning up first row");
                     db.delete(Favorites.TABLE_NAME,

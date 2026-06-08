@@ -25,6 +25,7 @@ import androidx.core.content.res.ResourcesCompat
 import app.lawnchair.preferences2.PreferenceManager2
 import com.android.launcher3.R
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import com.patrykmichalik.opto.core.setBlocking
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,7 +38,7 @@ object DefaultWallpaperInitializer {
 
     suspend fun applyIfNeeded(launcher: LawnchairLauncher) {
         val prefs2 = PreferenceManager2.getInstance(launcher)
-        if (prefs2.defaultWallpaperApplied.firstBlocking()) {
+        if (prefs2.defaultWallpaperApplied.firstBlockingCached()) {
             return
         }
 

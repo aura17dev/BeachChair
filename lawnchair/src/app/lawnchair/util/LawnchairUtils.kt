@@ -60,6 +60,7 @@ import com.android.launcher3.util.Themes
 import com.android.launcher3.views.ActivityContext
 import com.android.systemui.shared.system.QuickStepContract
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Locale
@@ -177,18 +178,18 @@ val View?.pendingIntent get() = this?.getTag(pendingIntentTagId) as? PendingInte
 
 fun getFolderPreviewAlpha(context: Context): Int {
     val prefs2 = PreferenceManager2.getInstance(context)
-    return (prefs2.folderPreviewBackgroundOpacity.firstBlocking() * 255).toInt()
+    return (prefs2.folderPreviewBackgroundOpacity.firstBlockingCached() * 255).toInt()
 }
 
 fun getFolderBackgroundAlpha(context: Context): Int {
     val prefs2 = PreferenceManager2.getInstance(context)
-    return (prefs2.folderBackgroundOpacity.firstBlocking() * 255).toInt()
+    return (prefs2.folderBackgroundOpacity.firstBlockingCached() * 255).toInt()
 }
 
 /** Apply Lawnchair custom allapps colour to the provided colour */
 private fun getAllAppsBaseColor(context: Context, defaultColor: Int): Int {
     val prefs2 = PreferenceManager2.getInstance(context)
-    val colorOptions: ColorOption = prefs2.appDrawerBackgroundColor.firstBlocking()
+    val colorOptions: ColorOption = prefs2.appDrawerBackgroundColor.firstBlockingCached()
     val color = colorOptions.colorPreferenceEntry.lightColor.invoke(context)
     val baseColor = if (color != 0) color else defaultColor
     return ColorUtils.setAlphaComponent(baseColor, 255)
@@ -310,8 +311,6 @@ private fun versionParser(version: Long): List<Int> {
     return listOf(major, minor, stage, release, patch)
 }
 
-// pE-TODO: Make this actually sensible because the writing is really non-sense after re-reading for fourth time
-
 /**
  * Get both current and APK version for the purpose of comparing them.
  * Returns a [Pair] of (current build version, apk build version) or null if parsing fails.
@@ -342,8 +341,6 @@ fun Context.getApkVersionComparison(apkFile: File): Pair<List<Int>, List<Int>>? 
 
     return Pair(currentParsed, apkParsed)
 }
-
-// pE-TODO: Make this actually sensible because the writing is really non-sense after re-reading for fourth time
 
 /**
  * Get current version for the purpose of comparing them.

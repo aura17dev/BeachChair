@@ -84,6 +84,12 @@ public class FolderInfo extends CollectionInfo {
 
     public int options;
 
+    public String icon;
+
+    public boolean iconOnly;
+
+    public boolean hideFromAll;
+
     public FolderNameInfos suggestedFolderNames;
 
     /**

@@ -59,7 +59,6 @@ import com.android.launcher3.model.data.PredictedContainerInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.popup.SystemShortcut;
-import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.touch.ItemLongClickListener;
 import com.android.launcher3.uioverrides.PredictedAppIcon;
@@ -67,6 +66,7 @@ import com.android.launcher3.uioverrides.QuickstepLauncher;
 import com.android.launcher3.views.Snackbar;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -106,7 +106,6 @@ public class HotseatPredictionController implements DragController.DragListener,
         if (!ItemLongClickListener.canStartDrag(mLauncher)) return false;
         if (mLauncher.getWorkspace().isSwitchingState()) return false;
 
-        TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "onWorkspaceItemLongClick");
         if (mEnableHotseatLongPressTipForTesting && !HOTSEAT_LONGPRESS_TIP_SEEN.get(mLauncher)) {
             Snackbar.show(mLauncher, R.string.hotseat_tip_gaps_filled,
                     R.string.hotseat_prediction_settings, null,
@@ -394,7 +393,7 @@ public class HotseatPredictionController implements DragController.DragListener,
     public SystemShortcut<QuickstepLauncher> getShortcut(QuickstepLauncher activity,
             ItemInfo itemInfo, View originalView) {
         PreferenceManager2 prefs = PreferenceManager2.getInstance(activity);
-        if (PreferenceExtensionsKt.firstBlocking(prefs.getLockHomeScreen())) {
+        if (PreferenceManager2Kt.firstBlockingCached(prefs.getLockHomeScreen())) {
             return null;
         }
         if (itemInfo.container != LauncherSettings.Favorites.CONTAINER_HOTSEAT_PREDICTION) {

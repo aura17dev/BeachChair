@@ -51,7 +51,6 @@ import com.android.launcher3.logging.StatsLogManager.EventEnum;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.popup.ArrowPopup;
 import com.android.launcher3.shortcuts.DeepShortcutView;
-import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 
 import java.util.ArrayList;
@@ -59,6 +58,7 @@ import java.util.List;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import app.lawnchair.ui.popup.LauncherOptionsPopup;
 
 /**
@@ -237,7 +237,6 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
     }
 
     private static boolean startSettings(View view) {
-        TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "start: startSettings");
         Launcher launcher = Launcher.getLauncher(view.getContext());
         Intent intent = new Intent(Intent.ACTION_APPLICATION_PREFERENCES)
                 .setPackage(launcher.getPackageName())
@@ -285,7 +284,7 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
     private static boolean toggleHomeScreenLock(View v) {
         Context context = v.getContext();
         PreferenceManager2 preferenceManager2 = PreferenceManager2.getInstance(context);
-        boolean oldValue = PreferenceExtensionsKt.firstBlocking(preferenceManager2.getLockHomeScreen());
+        boolean oldValue = PreferenceManager2Kt.firstBlockingCached(preferenceManager2.getLockHomeScreen());
         PreferenceExtensionsKt.setBlocking(preferenceManager2.getLockHomeScreen(), !oldValue);
         return true;
     }

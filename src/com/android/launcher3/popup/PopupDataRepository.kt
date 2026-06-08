@@ -60,8 +60,8 @@ interface PopupDataRepository {
          * @param itemInfo is all the items for which we want to aggregate their popup data.
          * @return a new PopupDataRepository.
          */
-        fun createRepository(vararg itemInfo: ItemInfo): PopupDataRepository {
-            return TODO("Provide the return value")
-        }
+        @JvmStatic
+        fun createRepository(vararg itemInfo: ItemInfo): PopupDataRepository =
+            LauncherPopupDataRepository(itemInfo)
     }
 }

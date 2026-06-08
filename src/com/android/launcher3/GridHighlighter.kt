@@ -52,7 +52,7 @@ interface GridHighlighter {
             shouldAddPadding: Boolean,
             cellLayout: CellLayout,
         ): GridHighlighter? {
-            return TODO("Provide the return value")
+            return null
         }
 
         /**
@@ -66,7 +66,7 @@ interface GridHighlighter {
          * @return GridHighlighter that we create when calling this function.
          */
         fun createGridHighlighter(itemInfo: ItemInfo): GridHighlighter? {
-            return TODO("Provide the return value")
+            return null
         }
     }
 }

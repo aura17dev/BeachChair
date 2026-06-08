@@ -148,6 +148,14 @@ fun GridSettings(prefs: PreferenceManager, prefs2: PreferenceManager2) {
         }
         Item {
             SliderPreference(
+                label = stringResource(id = R.string.dock_rows),
+                adapter = prefs.hotseatRows.getAdapter(),
+                step = 1,
+                valueRange = 1..2,
+            )
+        }
+        Item {
+            SliderPreference(
                 adapter = prefs2.hotseatBottomFactor.getAdapter(),
                 label = stringResource(id = R.string.hotseat_bottom_space_label),
                 valueRange = 0.0F..1.7F,

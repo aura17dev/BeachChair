@@ -40,7 +40,5 @@ class LawnchairLayoutFactory(context: Context) :
         return onCreateView(null, name, context, attrs)
     }
 
-    override fun close() {
-        TODO("Not yet implemented")
-    }
+    override fun close() = Unit
 }

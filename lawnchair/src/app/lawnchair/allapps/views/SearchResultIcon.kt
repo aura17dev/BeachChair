@@ -209,7 +209,7 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
         target: SearchTargetCompat,
         info: SearchActionItemInfo,
     ) {
-        val action = target.searchAction!!
+        val action = target.searchAction ?: return
         LauncherIcons.obtain(context).use { li ->
             val icon = action.icon
 
@@ -232,8 +232,8 @@ class SearchResultIcon(context: Context, attrs: AttributeSet?) :
                     val activityIcon = iconProvider.getIcon(activityInfo)
                     val bitmap = li.createIconBitmap(activityIcon, 1f)
                     val bitmapInfo = BitmapInfo.of(bitmap, packageIcon.color)
-                    // Lawnchair-TODO-Postmerge: AOSP removed it -- 393bc59246f0f88f62b9879000d57fde36cdb214
-//                    info.bitmap = li.badgeBitmap(info.bitmap.icon, bitmapInfo)
+                    // li.badgeBitmap was removed in AOSP commit 393bc59; badge the icon
+                    // here once an equivalent API is available in LauncherIcons.
                 } catch (_: PackageManager.NameNotFoundException) {
                 }
             } else if (info.hasFlags(SearchActionItemInfo.FLAG_BADGE_WITH_PACKAGE) && info.bitmap != packageIcon) {

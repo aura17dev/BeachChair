@@ -28,6 +28,7 @@ import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.touch.ItemLongClickListener;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 import com.android.launcher3.util.IntSet;
 
@@ -111,7 +112,7 @@ public interface WorkspaceLayoutManager {
             // Hide folder title in the hotseat
             if (child instanceof FolderIcon) {
                 ((FolderIcon) child).setTextVisible(
-                        PreferenceExtensionsKt.firstBlocking(
+                        PreferenceManager2Kt.firstBlockingCached(
                                 PreferenceManager2.getInstance(child.getContext())
                                         .getEnableLabelInDock())); // LC-Note: Show/hide folder title based on dock label preference
             }

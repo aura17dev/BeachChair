@@ -52,7 +52,9 @@ class LawnchairAlphabeticalAppsList<T>(
     override fun updateItemFilter(itemFilter: Predicate<ItemInfo>?) {
         mItemFilter = Predicate { info ->
             require(info is AppInfo) { "`info` must be an instance of `AppInfo`." }
-            val componentKey = info.toComponentKey().toString()
+            // Inline the ComponentKey string format to avoid allocating a ComponentKey object
+            // on every app during each filter pass (ComponentKey.toString = "pkg/cls#userId").
+            val componentKey = "${info.componentName?.flattenToString()}#${info.user.hashCode()}"
             (itemFilter?.test(info) != false) && !hiddenApps.contains(componentKey)
         }
         onAppsUpdated()

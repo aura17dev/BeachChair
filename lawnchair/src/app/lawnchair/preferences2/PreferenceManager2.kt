@@ -74,12 +74,17 @@ import com.patrykmichalik.opto.core.firstBlocking
 import com.patrykmichalik.opto.core.setBlocking
 import javax.inject.Inject
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.collect
+import com.patrykmichalik.opto.domain.Preference
+import app.lawnchair.LawnchairApp
 
 @LauncherAppSingleton
 class PreferenceManager2 @Inject constructor(
@@ -105,6 +110,23 @@ class PreferenceManager2 @Inject constructor(
 
     override val preferencesDataStore = context.preferencesDataStore
     private val reloadHelper = ReloadHelper(context)
+
+    val cache = java.util.concurrent.ConcurrentHashMap<String, Any>()
+
+    fun <C> getCached(pref: Preference<C, *, out Preferences.Key<*>>): C {
+        val rawValue = cache[pref.key.name]
+        @Suppress("UNCHECKED_CAST")
+        return rawValue as? C ?: pref.firstBlocking()
+    }
+
+    fun getCached(pref: IdpPreference, gridOption: InvariantDeviceProfile.GridOption): Int {
+        val rawValue = cache[pref.key.name] as? Int
+        return if (rawValue == null || rawValue == -1) {
+            pref.defaultSelector(gridOption)
+        } else {
+            rawValue
+        }
+    }
 
     val darkStatusBar = preference(
         key = booleanPreferencesKey(name = "dark_status_bar"),
@@ -334,6 +356,11 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = context.resources.getBoolean(R.bool.config_default_show_status_bar),
     )
 
+    val hideGestureBar = preference(
+        key = booleanPreferencesKey(name = "hide_gesture_bar"),
+        defaultValue = false,
+    )
+
     val statusBarClock = preference(
         key = booleanPreferencesKey(name = "status_bar_clock"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_dynamic_hide_status_bar_clock),
@@ -364,6 +391,16 @@ class PreferenceManager2 @Inject constructor(
 
     val enableDrawerPages = preference(
         key = booleanPreferencesKey(name = "enable_drawer_pages"),
+        defaultValue = false,
+    )
+
+    val deepSeekApiKey = preference(
+        key = stringPreferencesKey(name = "deepseek_api_key"),
+        defaultValue = "",
+    )
+
+    val aiAutoSortNewApps = preference(
+        key = booleanPreferencesKey(name = "ai_auto_sort_new_apps"),
         defaultValue = false,
     )
 
@@ -743,9 +780,18 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = true,
     )
 
-    val iconScrollWave = preference(
-        key = booleanPreferencesKey(name = "beach_icon_scroll_wave"),
-        defaultValue = true,
+    val homeMorphAnimation = preference(
+        key = stringPreferencesKey(name = "beach_home_morph_animation"),
+        defaultValue = app.lawnchair.views.HomeMorphAnimation.SIGNATURE,
+        parse = { app.lawnchair.views.HomeMorphAnimation.fromString(it) },
+        save = { it.name },
+    )
+
+    val drawerScrollAnimation = preference(
+        key = stringPreferencesKey(name = "beach_drawer_scroll_animation"),
+        defaultValue = app.lawnchair.allapps.DrawerScrollAnimation.WAVE,
+        parse = { app.lawnchair.allapps.DrawerScrollAnimation.fromString(it) },
+        save = { it.name },
     )
 
     val drawerOvershoot = preference(
@@ -761,6 +807,16 @@ class PreferenceManager2 @Inject constructor(
     val scaleBounce = preference(
         key = booleanPreferencesKey(name = "beach_scale_bounce"),
         defaultValue = true,
+    )
+
+    val drawerPageSwipeFade = preference(
+        key = booleanPreferencesKey(name = "beach_drawer_page_swipe_fade"),
+        defaultValue = true,
+    )
+
+    val drawerPageSwipeFadeDuration = preference(
+        key = intPreferencesKey(name = "beach_drawer_page_swipe_fade_duration"),
+        defaultValue = 300,
     )
 
     val defaultWallpaperApplied = preference(
@@ -854,6 +910,120 @@ class PreferenceManager2 @Inject constructor(
     )
 
     init {
+        // Collect hotpath preferences to keep cache updated
+        val hotpathPrefs: List<Preference<*, *, out Preferences.Key<*>>> = listOf(
+            homeIconSizeFactor,
+            drawerIconSizeFactor,
+            showIconLabelsInDrawer,
+            drawerIconLabelSizeFactor,
+            enableTaskbarOnPhone,
+            showIconLabelsOnHomeScreen,
+            homeIconLabelSizeFactor,
+            showIconLabelsOnHomeScreenFolder,
+            homeIconLabelFolderSizeFactor,
+            drawerCellHeightFactor,
+            pageIndicatorHeightFactor,
+            hotseatMode,
+            showNotificationCount,
+            notificationDotColor,
+            notificationDotTextColor,
+            enableLabelInDock,
+            hotseatBottomFactor,
+            isHotseatEnabled,
+            drawerLeftRightMarginFactor,
+            // Prefs read on the main thread during view inflation or context-menu build —
+            // warm them up to avoid blocking DataStore reads in those hot paths.
+            matchHotseatQsbStyle,
+            hideAppDrawerSearchBar,
+            enableDrawerPages,
+            lockHomeScreen,
+            searchAlgorithm,
+            // Per-scroll-frame reads in updateHeaderScroll / getHeaderColor:
+            workProfileTabContainerBackground,
+            appDrawerSearchBarBackground,
+            // Per-transition reads (drawer open / spring animation):
+            scaleBounce,
+            // Read on the main thread when the app->home morph fires:
+            homeMorphAnimation,
+            appDrawerHapticFeedback,
+            // Init/reset-time reads:
+            showScrollbar,
+            rememberPosition,
+            folderColor,
+            allowWidgetOverlap,
+            deckLayout,
+            forceWidgetResize,
+            widgetUnlimitedSize,
+            showSuggestedAppsInDrawer,
+            wallpaperDepthEffect,
+            // Workspace / Hotseat / drawer animation reads:
+            hotseatBackgroundColor,
+            statusBarClock,
+            defaultHomePage,
+            workspaceTextColor,
+            iconSwipeGestures,
+            enableSmartspace,
+            smartspaceMode,
+            enableFeed,
+            drawerOvershoot,
+            pixelatedFade,
+            // Theme/color reads at init and per-draw:
+            accentColor,
+            colorStyle,
+            appDrawerBackgroundColor,
+            workProfileTabBackgroundColor,
+            folderPreviewBackgroundOpacity,
+            folderBackgroundOpacity,
+            closingAppOverlay,
+            // Popup reads on long-press:
+            lockHomeScreenButtonOnPopUp,
+            editHomeScreenButtonOnPopUp,
+            showSystemSettingsEntryOnPopUp,
+            legacyPopupOptionsMigrated,
+            // One-time init reads:
+            defaultWallpaperApplied,
+            autoUpdaterNightly,
+            // Icon shape / theme manager:
+            iconShape,
+            folderShape,
+            alwaysReloadIcons,
+            launcherPopupOrder,
+            // Per-keystroke search reads:
+            hiddenApps,
+            hiddenAppsInSearch,
+            maxAppSearchResultCount,
+            enableFuzzySearch,
+            maxPeopleResultCount,
+            maxFileResultCount,
+            maxSettingsEntryResultCount,
+            maxRecentResultCount,
+            webSuggestionProvider,
+            maxWebSuggestionDelay,
+            maxWebSuggestionResultCount,
+            webSuggestionProviderUrl,
+            webSuggestionProviderSuggestionsUrl,
+            webSuggestionProviderName,
+        )
+
+        scope.launch(Dispatchers.IO) {
+            hotpathPrefs.forEach { preferenceItem ->
+                launch {
+                    preferenceItem.get().collect { value ->
+                        if (value != null) {
+                            cache[preferenceItem.key.name] = value
+                        }
+                    }
+                }
+            }
+        }
+
+        scope.launch(Dispatchers.IO) {
+            preferencesDataStore.data.collect { preferences ->
+                preferences[drawerColumns.key]?.let { cache[drawerColumns.key.name] = it }
+                preferences[folderColumns.key]?.let { cache[folderColumns.key.name] = it }
+            }
+        }
+
         initializeIconShape(iconShape.firstBlocking())
         iconShape.get()
             .drop(1)
@@ -927,3 +1097,13 @@ class PreferenceManager2 @Inject constructor(
 
 @Composable
 fun preferenceManager2() = PreferenceManager2.getInstance(LocalContext.current)
+
+fun <C> Preference<C, *, out Preferences.Key<*>>.firstBlockingCached(): C {
+    val pm = PreferenceManager2.getInstance(LawnchairApp.instance)
+    return pm.getCached(this)
+}
+
+fun IdpPreference.firstBlockingCached(gridOption: InvariantDeviceProfile.GridOption): Int {
+    val pm = PreferenceManager2.getInstance(LawnchairApp.instance)
+    return pm.getCached(this, gridOption)
+}

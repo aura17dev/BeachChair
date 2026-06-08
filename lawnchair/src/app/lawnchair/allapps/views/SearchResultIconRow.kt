@@ -7,6 +7,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import app.lawnchair.allapps.views.SearchResultView.Companion.FLAG_HIDE_SUBTITLE
 import app.lawnchair.font.FontManager
 import app.lawnchair.search.adapter.CALCULATOR
@@ -18,6 +20,8 @@ import app.lawnchair.util.copyToClipboard
 import com.android.app.search.LayoutType
 import com.android.launcher3.R
 import com.android.launcher3.views.BubbleTextHolder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
     LinearLayout(context, attrs),
@@ -33,6 +37,12 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
 
     private var flags = 0
 
+    // Cached view references and dimension values — set once in onFinishInflate, never re-looked-up per bind.
+    private lateinit var textRows: LinearLayout
+    private var rowMediumHeight = 0
+    private var rowSmallHeight = 0
+    private var subtitleStartPadding = 0
+
     override fun onFinishInflate() {
         super.onFinishInflate()
         isSmall = id == R.id.search_result_small_icon_row
@@ -47,9 +57,14 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
         title = ViewCompat.requireViewById(this, R.id.title)
         subtitle = ViewCompat.requireViewById(this, R.id.subtitle)
         subtitle.isVisible = false
-        FontManager.INSTANCE.get(context).setCustomFont(title, R.id.font_heading)
-        FontManager.INSTANCE.get(context).setCustomFont(subtitle, R.id.font_body)
+        val fontManager = FontManager.INSTANCE.get(context)
+        fontManager.setCustomFont(title, R.id.font_heading)
+        fontManager.setCustomFont(subtitle, R.id.font_body)
         delimiter = findViewById(R.id.delimiter)
+        textRows = ViewCompat.requireViewById(this, R.id.text_rows)
+        rowMediumHeight = resources.getDimensionPixelSize(R.dimen.search_result_row_medium_height)
+        rowSmallHeight = resources.getDimensionPixelSize(R.dimen.search_result_small_row_height)
+        subtitleStartPadding = resources.getDimensionPixelSize(R.dimen.search_result_subtitle_padding_start)
         setOnClickListener(icon)
 
         shortcutIcons = listOf(
@@ -98,16 +113,14 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
         bindShortcuts(shortcuts)
         var showDelimiter = true
         if (isSmall) {
-            val textRows = ViewCompat.requireViewById<LinearLayout>(this, R.id.text_rows)
             if (target.layoutType == LayoutType.HORIZONTAL_MEDIUM_TEXT) {
                 showDelimiter = false
-                layoutParams.height = resources.getDimensionPixelSize(R.dimen.search_result_row_medium_height)
+                layoutParams.height = rowMediumHeight
                 textRows.orientation = VERTICAL
                 subtitle.setPadding(0, 0, 0, 0)
             } else {
-                layoutParams.height = resources.getDimensionPixelSize(R.dimen.search_result_small_row_height)
+                layoutParams.height = rowSmallHeight
                 textRows.orientation = HORIZONTAL
-                val subtitleStartPadding = resources.getDimensionPixelSize(R.dimen.search_result_subtitle_padding_start)
                 subtitle.setPaddingRelative(subtitleStartPadding, 0, 0, 0)
             }
         }
@@ -118,7 +131,7 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
             }
         }
         if (isSuggestion || isSetting) {
-            layoutParams.height = resources.getDimensionPixelSize(R.dimen.search_result_small_row_height)
+            layoutParams.height = rowSmallHeight
             setOnClickListener {
                 target.searchAction?.intent?.let { intent -> handleSearchTargetClick(context, intent) }
             }
@@ -132,6 +145,53 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
                 )
             }
         }
+        if (target.packageName == HISTORY) {
+            setOnLongClickListener {
+                showDeleteHistoryDialog(context, target)
+                true
+            }
+        } else {
+            setOnLongClickListener(null)
+        }
+    }
+
+    private fun showDeleteHistoryDialog(context: Context, target: SearchTargetCompat) {
+        val queryText = target.searchAction?.title?.toString() ?: ""
+        if (queryText.isEmpty()) return
+
+        val title = context.getString(R.string.search_history_delete_title)
+        val message = context.getString(R.string.search_history_delete_message, queryText)
+
+        android.app.AlertDialog.Builder(context)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val uri = android.net.Uri.parse("content://${app.lawnchair.search.LawnchairRecentSuggestionProvider.AUTHORITY}/suggestions")
+                val scope = (context as? LifecycleOwner)?.lifecycleScope
+                if (scope != null) {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            context.contentResolver.delete(uri, "display1 = ?", arrayOf(queryText))
+                        } catch (e: Exception) {
+                            android.util.Log.e("SearchResultIconRow", "Failed to delete history item", e)
+                        }
+                        launch(Dispatchers.Main) {
+                            val activityContext = com.android.launcher3.views.ActivityContext.lookupContext<com.android.launcher3.BaseActivity>(context) as com.android.launcher3.views.ActivityContext
+                            activityContext.appsView?.searchUiManager?.refreshResults()
+                        }
+                    }
+                } else {
+                    try {
+                        context.contentResolver.delete(uri, "display1 = ?", arrayOf(queryText))
+                        val activityContext = com.android.launcher3.views.ActivityContext.lookupContext<com.android.launcher3.BaseActivity>(context) as com.android.launcher3.views.ActivityContext
+                        activityContext.appsView?.searchUiManager?.refreshResults()
+                    } catch (e: Exception) {
+                        android.util.Log.e("SearchResultIconRow", "Failed to delete history item", e)
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun setSubtitleText(subtitleText: CharSequence?, showDelimiter: Boolean) {

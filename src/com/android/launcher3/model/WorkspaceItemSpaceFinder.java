@@ -32,6 +32,7 @@ import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.IntSet;
 
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import java.util.ArrayList;
 
 import javax.inject.Inject;
@@ -97,7 +98,7 @@ public class WorkspaceItemSpaceFinder {
         // First check the preferred screen.
         IntSet screensToExclude = new IntSet();
         
-        boolean smartspaceEnabled = PreferenceExtensionsKt.firstBlocking(PreferenceManager2.INSTANCE.get(context).getEnableSmartspace());
+        boolean smartspaceEnabled = PreferenceManager2Kt.firstBlockingCached(PreferenceManager2.INSTANCE.get(context).getEnableSmartspace());
         if (smartspaceEnabled) {
             screensToExclude.add(FIRST_SCREEN_ID);
         }

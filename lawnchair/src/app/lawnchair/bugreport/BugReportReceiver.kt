@@ -21,7 +21,7 @@ import com.android.launcher3.R
 class BugReportReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val report = intent.getParcelableExtra<BugReport>("report")!!
+        val report = intent.getParcelableExtra<BugReport>("report") ?: return
         when (intent.action) {
             COPY_ACTION -> copyReport(context, report)
             UPLOAD_ACTION -> startUpload(context, report)

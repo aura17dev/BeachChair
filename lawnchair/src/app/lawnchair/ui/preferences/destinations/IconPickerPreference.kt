@@ -43,11 +43,15 @@ import app.lawnchair.ui.OverflowMenu
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroupDescription
 import app.lawnchair.ui.preferences.components.layout.PreferenceLazyColumn
 import app.lawnchair.ui.preferences.components.layout.PreferenceSearchScaffold
+import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
 import app.lawnchair.ui.preferences.components.layout.verticalGridItems
+import androidx.compose.foundation.layout.size
 import app.lawnchair.ui.util.LazyGridLayout
 import app.lawnchair.ui.util.resultSender
 import app.lawnchair.util.requireSystemService
+import com.android.launcher3.LauncherAppState
 import com.android.launcher3.R
+import com.android.launcher3.util.ComponentKey
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
@@ -56,6 +60,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun IconPickerPreference(
     packageName: String,
+    componentKey: String = "",
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -68,6 +73,45 @@ fun IconPickerPreference(
             backDispatcher?.onBackPressed()
         }
         return
+    }
+
+    val targetComponentKey = remember(componentKey) {
+        if (componentKey.isNotEmpty()) ComponentKey.fromString(componentKey) else null
+    }
+
+    val targetLabel = remember(targetComponentKey) {
+        if (targetComponentKey != null) {
+            try {
+                val launcherApps = context.getSystemService(android.content.pm.LauncherApps::class.java)
+                val intent = Intent().setComponent(targetComponentKey.componentName)
+                val lai = launcherApps.resolveActivity(intent, targetComponentKey.user)
+                lai?.label?.toString()
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    val targetIcon by produceState<Drawable?>(initialValue = null, targetComponentKey) {
+        if (targetComponentKey != null) {
+            launch(Dispatchers.IO) {
+                try {
+                    val launcherApps = context.getSystemService(android.content.pm.LauncherApps::class.java)
+                    val intent = Intent().setComponent(targetComponentKey.componentName)
+                    val lai = launcherApps.resolveActivity(intent, targetComponentKey.user)
+                    if (lai != null) {
+                        val loaded = LauncherAppState.getInstance(context).iconCache.getFullResIcon(lai.activityInfo)
+                        if (loaded != null) {
+                            value = loaded
+                        }
+                    }
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+        }
     }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -119,6 +163,9 @@ fun IconPickerPreference(
             iconPack = iconPack,
             searchQuery = searchQuery,
             onClickItem = onClickItem,
+            targetComponentKey = targetComponentKey,
+            targetLabel = targetLabel,
+            targetIcon = targetIcon,
         )
     }
 }
@@ -131,6 +178,9 @@ fun IconPickerGrid(
     searchQuery: String,
     modifier: Modifier = Modifier,
     onClickItem: (item: IconPickerItem) -> Unit,
+    targetComponentKey: ComponentKey? = null,
+    targetLabel: String? = null,
+    targetIcon: Drawable? = null,
 ) {
     var loadFailed by remember { mutableStateOf(false) }
     val categoriesFlow = remember {
@@ -157,6 +207,23 @@ fun IconPickerGrid(
     }
     val numColumns by gridLayout.numColumns
     PreferenceLazyColumn(scaffoldPadding, modifier = modifier.then(gridLayout.onSizeChanged())) {
+        if (targetComponentKey != null && targetLabel != null) {
+            item {
+                PreferenceTemplate(
+                    title = { Text(text = targetLabel) },
+                    description = { Text(text = stringResource(id = R.string.icon_picker_customizing_app)) },
+                    startWidget = {
+                        targetIcon?.let {
+                            Image(
+                                painter = rememberDrawablePainter(it),
+                                contentDescription = null,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+                )
+            }
+        }
         if (numColumns != 0) {
             filteredCategories.forEach { category ->
                 stickyHeader {

@@ -72,6 +72,7 @@ import java.util.stream.Collectors;
 import app.lawnchair.deck.LawndeckManager;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 /**
@@ -465,7 +466,7 @@ public class PackageUpdatedTask implements ModelUpdateTask {
             
             // If deck layout is enabled, add newly installed apps to workspace with categorization
             PreferenceManager2 pref2 = PreferenceManager2.INSTANCE.get(context);
-            if (PreferenceExtensionsKt.firstBlocking(pref2.getDeckLayout())) {
+            if (PreferenceManager2Kt.firstBlockingCached(pref2.getDeckLayout())) {
                 LawndeckManager deckManager = new LawndeckManager(context);
                 ModelWriter modelWriter = taskController.getModelWriter();
                 for (int i = 0; i < packageCount; i++) {

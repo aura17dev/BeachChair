@@ -50,7 +50,8 @@ public class CellPosMapper {
             int container) {
         if (container == Favorites.CONTAINER_HOTSEAT) {
             presenterScreen = mHasVerticalHotseat
-                    ? mNumOfHotseat - presenterY - 1 : presenterX;
+                    ? mNumOfHotseat - presenterY - 1
+                    : presenterX + presenterY * mNumOfHotseat;
         }
         return new CellPos(presenterX, presenterY, presenterScreen);
     }

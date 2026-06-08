@@ -14,7 +14,8 @@ class TaskOverlayFactoryImpl(@Suppress("UNUSED_PARAMETER") context: Context) : T
     class TaskOverlay(
         taskThumbnailView: TaskContainer,
     ) : TaskOverlayFactory.TaskOverlay<LawnchairOverviewActionsView>(taskThumbnailView) {
-        // Lawnchair-TODO-Recents: The entire code for initOverlay moved to Go variant???
+        // initOverlay is intentionally empty here; overlay population is handled by the
+        // parent TaskOverlayFactory. The Go variant override no longer applies post-merge.
     }
 
     sealed interface OverlayUICallbacks : TaskOverlayFactory.OverlayUICallbacks {

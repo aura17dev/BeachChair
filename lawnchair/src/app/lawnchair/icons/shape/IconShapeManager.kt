@@ -29,6 +29,7 @@ import com.android.launcher3.dagger.LauncherAppSingleton
 import com.android.launcher3.util.DaggerSingletonObject
 import com.android.launcher3.util.SafeCloseable
 import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import javax.inject.Inject
 
 @LauncherAppSingleton
@@ -45,9 +46,7 @@ class IconShapeManager @Inject constructor(
         return IconShape.SystemBased(iconMask, context)
     }
 
-    override fun close() {
-        TODO("Not yet implemented")
-    }
+    override fun close() = Unit
 
     companion object {
         @JvmField
@@ -56,6 +55,6 @@ class IconShapeManager @Inject constructor(
         fun getSystemIconShape(context: Context) = INSTANCE.get(context).systemIconShape
 
         @JvmStatic
-        fun getWindowTransitionRadius(context: Context) = PreferenceManager2.getInstance(context).iconShape.firstBlocking().windowTransitionRadius
+        fun getWindowTransitionRadius(context: Context) = PreferenceManager2.getInstance(context).iconShape.firstBlockingCached().windowTransitionRadius
     }
 }

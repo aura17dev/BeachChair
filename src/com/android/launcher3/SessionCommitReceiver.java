@@ -35,6 +35,7 @@ import com.android.launcher3.util.Executors;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 
 import java.util.Locale;
 
@@ -112,7 +113,7 @@ public class SessionCommitReceiver extends BroadcastReceiver {
      */
     public static boolean isEnabled(Context context, UserHandle user) {
         if (Flags.privateSpaceRestrictItemDrag() 
-            && PreferenceExtensionsKt.firstBlocking(PreferenceManager2.getInstance(context).getLockHomeScreen())
+            && PreferenceManager2Kt.firstBlockingCached(PreferenceManager2.getInstance(context).getLockHomeScreen())
             && user != null
             && UserCache.getInstance(context).getUserInfo(user).isPrivate()) {
             return false;

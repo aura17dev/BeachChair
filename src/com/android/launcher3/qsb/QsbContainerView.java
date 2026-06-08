@@ -313,7 +313,9 @@ public class QsbContainerView extends FrameLayout {
         protected View getDefaultView(ViewGroup container, boolean showSetupIcon) {
             // Return a default widget with setup icon.
             View v = QsbWidgetHostView.getDefaultView(container);
-            // pE-TODO(??): Why are we using isInPreviewMode() check to prevent crash?
+            // Guard with isInPreviewMode(): startActivityForResult() requires the fragment to be
+            // attached to a live Activity. In preview mode (e.g. widget picker) the fragment host
+            // may not be an Activity, so the call would throw an IllegalStateException.
             if (showSetupIcon && !isInPreviewMode()) {
                 requestQsbCreate();
                 View setupButton = v.findViewById(R.id.btn_qsb_setup);

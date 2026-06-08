@@ -28,6 +28,7 @@ google-protobuf = "com.google.protobuf:0.10.0"
 cash-licensee = "app.cash.licensee:1.14.1"
 rikka-refine = { id = "dev.rikka.tools.refine", version.ref = "refine" }
 diffplug-spotless = "com.diffplug.spotless:8.6.0"
+google-secrets = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:2.0.1"
 
 [libraries]
 # AndroidX

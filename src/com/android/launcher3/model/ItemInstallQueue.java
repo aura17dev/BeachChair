@@ -330,8 +330,11 @@ public class ItemInstallQueue {
                                     && lai.getActivityInfo().isArchived) {
                                 si.runtimeStatusFlags |= FLAG_ARCHIVED;
                             }
-                        } catch (Throwable t) {
-                            // ignore
+                        } catch (NoSuchFieldError | NoSuchMethodError e) {
+                            // isArchived is only available on Android V+; feature-flag guard above
+                            // should prevent this path on older SDKs, but some OEM builds expose
+                            // the flag without the underlying API.
+                            Log.w("ItemInstallQueue", "isArchived unavailable on this build", e);
                         }
                     }
                     LauncherAppState.getInstance(context).getIconCache()

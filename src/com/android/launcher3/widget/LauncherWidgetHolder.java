@@ -47,7 +47,6 @@ import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.util.ActivityOptionsWrapper;
 import com.android.launcher3.util.ResourceBasedOverride;
@@ -282,7 +281,6 @@ public class LauncherWidgetHolder {
         }
 
         try {
-            TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "start: startConfigActivity");
             mWidgetHost.startAppWidgetConfigureActivityForResult(activity, widgetId, 0, requestCode,
                     getConfigurationActivityOptions(activity, widgetId));
         } catch (ActivityNotFoundException | SecurityException e) {

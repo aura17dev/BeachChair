@@ -10,6 +10,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.SuspendDialogInfo
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.UserHandle
 import android.util.Log
@@ -29,11 +30,12 @@ import com.android.launcher3.Utilities
 import com.android.launcher3.icons.BitmapInfo
 import com.android.launcher3.model.data.AppInfo as ModelAppInfo
 import com.android.launcher3.model.data.ItemInfo
+import com.android.launcher3.model.data.WorkspaceItemInfo
 import com.android.launcher3.popup.SystemShortcut
 import com.android.launcher3.util.ApplicationInfoWrapper
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.views.ActivityContext
-import com.patrykmichalik.opto.core.firstBlocking
+import app.lawnchair.preferences2.firstBlockingCached
 import java.net.URISyntaxException
 
 class LawnchairShortcut {
@@ -42,7 +44,7 @@ class LawnchairShortcut {
 
         val CUSTOMIZE =
             SystemShortcut.Factory { activity: LawnchairLauncher, itemInfo, originalView ->
-                if (PreferenceManager2.getInstance(activity).lockHomeScreen.firstBlocking()) {
+                if (PreferenceManager2.getInstance(activity).lockHomeScreen.firstBlockingCached()) {
                     null
                 } else {
                     getAppInfo(activity, itemInfo)?.let { Customize(activity, it, itemInfo, originalView) }
@@ -58,7 +60,7 @@ class LawnchairShortcut {
 
         val UNINSTALL =
             SystemShortcut.Factory { activity: ActivityContext, itemInfo: ItemInfo, view: View ->
-                if (PreferenceManager2.INSTANCE.get(activity.asContext()).lockHomeScreen.firstBlocking()) {
+                if (PreferenceManager2.INSTANCE.get(activity.asContext()).lockHomeScreen.firstBlockingCached()) {
                     return@Factory null
                 }
                 if (itemInfo.targetComponent == null) {
@@ -102,8 +104,12 @@ class LawnchairShortcut {
         override fun onClick(v: View) {
             val outObj = Array<Any?>(1) { null }
             var icon = Utilities.loadFullDrawableWithoutTheme(launcher, appInfo, 0, 0, outObj)
+            if (mItemInfo is WorkspaceItemInfo) {
+                icon = mItemInfo.bitmap.newIcon(launcher)
+            }
             if (mItemInfo.screenId != NO_ID && icon is BitmapInfo.Extender) {
-                // Lawnchair-TODO-BubbleTea: Fix getThemedDrawable
+                // getThemedDrawable is not yet available on BitmapInfo.Extender in this build;
+                // re-enable once the themed icon API is stable.
                 // icon = icon.getThemedDrawable(launcher)
             }
             val launcherActivityInfo = outObj[0] as LauncherActivityInfo?
@@ -119,6 +125,8 @@ class LawnchairShortcut {
                         icon = icon,
                         defaultTitle = defaultTitle,
                         componentKey = appInfo.toComponentKey(),
+                        shortcutId = mItemInfo.id,
+                        shortcutContainer = mItemInfo.container,
                     ) { close(true) }
                 }
             } else {

@@ -68,6 +68,7 @@ import com.android.launcher3.views.ScrimView;
 import com.google.android.msdl.data.model.MSDLToken;
 
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.preferences2.PreferenceManager2Kt;
 import com.patrykmichalik.opto.core.PreferenceExtensionsKt;
 
 /**
@@ -405,7 +406,7 @@ public class AllAppsTransitionController
         setAlphas(toState, config, builder);
         // This controls both haptics for tapping on QSB and going to all apps.
         if (ALL_APPS.equals(toState) && mLauncher.isInState(NORMAL)) {
-            boolean hapticEnabled = PreferenceExtensionsKt.firstBlocking(
+            boolean hapticEnabled = PreferenceManager2Kt.firstBlockingCached(
                     PreferenceManager2.getInstance(mLauncher).getAppDrawerHapticFeedback());
 
             if (hapticEnabled) {
@@ -428,7 +429,7 @@ public class AllAppsTransitionController
         Animator anim = ObjectAnimator.ofFloat(this, ALL_APPS_PROGRESS, progressValues);
         final View appsView = mLauncher.getAppsView();
         if (appsView != null) {
-            boolean scaleBounce = PreferenceExtensionsKt.firstBlocking(
+            boolean scaleBounce = PreferenceManager2Kt.firstBlockingCached(
                     PreferenceManager2.getInstance(mLauncher).getScaleBounce());
             // Only bounce-scale when opening the drawer (target vertical progress ~0). Running it
             // on every transition meant the apps view was shrunk to 0.85 while *closing* or

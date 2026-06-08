@@ -81,9 +81,9 @@ class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
             activityOptions = mLauncher.getAppTransitionManager()
                     .getActivityLaunchOptions(hostView, (ItemInfo) hostView.getTag());
         } catch (NullPointerException e) {
-            Log.e("pE(C7evQZDJ)", "Failed to get activity launch options");
+            Log.e(TAG, "Failed to get activity launch options", e);
         }
-        if (!pendingIntent.isActivity()) {
+        if (!pendingIntent.isActivity() && activityOptions != null) {
             // In the event this pending intent eventually launches an activity, i.e. a trampoline,
             // use the Quickstep transition animation.
             try {
@@ -98,21 +98,19 @@ class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
                             pendingIntent.getCreatorPackage(),
                             activityOptions.options.getRemoteAnimationAdapter());
                 }
-            } catch (NullPointerException | RemoteException e) {
-                // pE-TODO(C7evQZDJ): Remove NullPointerException after fixing
+            } catch (RemoteException e) {
                 // Do nothing.
             }
         }
-        try {
-            activityOptions.options.setPendingIntentLaunchFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            activityOptions.options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_ICON);
-            activityOptions.options.setPendingIntentBackgroundActivityStartMode(
-                    ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
-        } catch (Throwable t) {
-            // ignore
-        }
-        // pE-TODO(C7evQZDJ): Remove activityOptions null check
         if (activityOptions != null) {
+            try {
+                activityOptions.options.setPendingIntentLaunchFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                activityOptions.options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_ICON);
+                activityOptions.options.setPendingIntentBackgroundActivityStartMode(
+                        ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+            } catch (Throwable t) {
+                // ignore
+            }
             options = Pair.create(options.first, activityOptions.options);
         }
         if (pendingIntent.isActivity()) {
@@ -121,7 +119,7 @@ class QuickstepInteractionHandler implements RemoteViews.InteractionHandler,
         if (activityOptions != null) {
             return RemoteViews.startPendingIntent(hostView, pendingIntent, options);
         } else {
-            Log.d("pE(C7evQZDJ)", "activityOptions is null!");
+            Log.d(TAG, "activityOptions unavailable; falling back to default launch options");
             return RemoteViews.startPendingIntent(hostView, pendingIntent,
                 remoteResponse.getLaunchOptions(view));
         }

@@ -606,7 +606,8 @@ public class Folder extends AbstractFloatingView implements ClipPathView, DragSo
                 }
             }
         } catch (Throwable t) {
-            // LC-Catch
+            // Fallback to AndroidX WindowInsetsCompat for older API levels where the platform
+            // WindowInsets.Type.ime() path throws (seen on some Android 10/11 OEM builds).
             WindowInsetsCompat insetsCompat = WindowInsetsCompat.toWindowInsetsCompat(windowInsets);
             if (insetsCompat.isVisible(WindowInsetsCompat.Type.ime())) {
                 androidx.core.graphics.Insets keyboardInsets = insetsCompat.getInsets(WindowInsetsCompat.Type.ime());

@@ -50,7 +50,6 @@ import com.android.launcher3.dagger.ActivityContextComponent;
 import com.android.launcher3.dagger.LauncherComponentProvider;
 import com.android.launcher3.logging.StatsLogManager;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.testing.TestLogging;
 import com.android.launcher3.testing.shared.TestProtocol;
 import com.android.launcher3.util.ActivityOptionsWrapper;
 import com.android.launcher3.util.DisplayController;
@@ -367,7 +366,6 @@ public abstract class BaseActivity extends Activity implements ActivityContext,
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT,
                     () -> {
                         onBackPressed();
-                        TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "onBackInvoked");
                     });
         }
     }
