@@ -21,3 +21,9 @@ __pycache__
 .vscode
 .fleet
 lawnWithQuickstep/release
+
+# Debug artifacts pulled from device / local build output (not source)
+app_icons.db
+launcher.db
+icon_*.png
+build_install.log
