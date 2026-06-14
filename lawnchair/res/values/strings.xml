@@ -302,6 +302,7 @@
     <string name="icon_picker_default_category">Icons</string>
     <string name="icon_picker_reset_to_default">Reset to default</string>
     <string name="icon_picker_customizing_app">Customizing app</string>
+    <string name="icon_picker_suggested_category">Suggested for this app</string>
     <string name="icon_pack_external_picker">Open external picker</string>
     <string name="pick_icon_from_label">Pick icon from</string>
     <string name="icon_picker_load_failed">Couldn\'t load more icons</string>

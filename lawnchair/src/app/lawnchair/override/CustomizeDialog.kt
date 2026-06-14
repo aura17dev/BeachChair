@@ -384,7 +384,7 @@ fun CustomizeAppDialog(
             
             applyToDock = sourceIsDock || hasDockCustomIcon
             applyToHomeScreen = sourceIsHomeScreen || hasHomeScreenCustomIcon
-            applyToAppDrawer = sourceIsAppDrawer || repo.overridesMap.containsKey(componentKey)
+            applyToAppDrawer = sourceIsAppDrawer || repo.getOverrideItem(componentKey) != null
             
             statesInitialized = true
         }

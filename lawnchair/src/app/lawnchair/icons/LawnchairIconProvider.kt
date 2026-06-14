@@ -93,8 +93,9 @@ class LawnchairIconProvider @Inject constructor(
 
     private fun resolveIconEntry(componentName: ComponentName, user: UserHandle): IconEntry? {
         val componentKey = ComponentKey(componentName, user)
-        // first look for user-overridden icon
-        val overrideItem = overrideRepo.overridesMap[componentKey]
+        // first look for user-overridden icon (tolerates launcher-activity class changes from
+        // app updates via a unique package+user fallback)
+        val overrideItem = overrideRepo.getOverrideItem(componentKey)
         if (overrideItem != null) {
             return overrideItem.toIconEntry()
         }

@@ -114,6 +114,28 @@ fun IconPickerPreference(
         }
     }
 
+    // The icon pack's own appfilter mapping for this exact app, if any — surfaced as a
+    // "Suggested" shortcut so the user doesn't have to scroll the whole pack to find it.
+    // Only meaningful for real icon packs; SystemIconPack would just return the default icon.
+    val suggestedItem by produceState<IconPickerItem?>(initialValue = null, iconPack, targetComponentKey) {
+        if (targetComponentKey != null && iconPack is CustomIconPack) {
+            launch(Dispatchers.IO) {
+                try {
+                    iconPack.loadBlocking()
+                    val entry = iconPack.getIcon(targetComponentKey.componentName) ?: return@launch
+                    value = IconPickerItem(
+                        packPackageName = entry.packPackageName,
+                        drawableName = entry.name,
+                        label = targetLabel ?: entry.name,
+                        type = entry.type,
+                    )
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+        }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     val onClickItem = resultSender<IconPickerItem>()
 
@@ -166,6 +188,7 @@ fun IconPickerPreference(
             targetComponentKey = targetComponentKey,
             targetLabel = targetLabel,
             targetIcon = targetIcon,
+            suggestedItem = suggestedItem,
         )
     }
 }
@@ -181,6 +204,7 @@ fun IconPickerGrid(
     targetComponentKey: ComponentKey? = null,
     targetLabel: String? = null,
     targetIcon: Drawable? = null,
+    suggestedItem: IconPickerItem? = null,
 ) {
     var loadFailed by remember { mutableStateOf(false) }
     val categoriesFlow = remember {
@@ -222,6 +246,32 @@ fun IconPickerGrid(
                         }
                     }
                 )
+            }
+        }
+        if (numColumns != 0 && suggestedItem != null && searchQuery.isEmpty()) {
+            stickyHeader {
+                Text(
+                    text = stringResource(id = R.string.icon_picker_suggested_category),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(16.dp),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            verticalGridItems(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp),
+                items = listOf(suggestedItem),
+                numColumns = numColumns,
+            ) { _, item ->
+                IconPreview(
+                    iconPack = iconPack,
+                    iconItem = item,
+                ) {
+                    onClickItem(item)
+                }
             }
         }
         if (numColumns != 0) {
