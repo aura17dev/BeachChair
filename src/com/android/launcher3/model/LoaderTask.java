@@ -559,6 +559,10 @@ public class LoaderTask implements Runnable {
                 WorkspaceItemInfo wai = iconRequestInfo.itemInfo;
                 if (iconRequestInfo.iconBlob != null) {
                     iconRequestInfo.loadIconFromDbBlob(mContext);
+                    // Lawnchair #4: this bulk path (not loadWorkspaceTitleAndIcon) is where workspace
+                    // custom-icon blobs actually load. Mark them so Cache/PackageUpdatedTask don't
+                    // revert the custom icon to the app default on update.
+                    wai.runtimeStatusFlags |= WorkspaceItemInfo.FLAG_CUSTOM_DB_ICON;
                 } else if (mIconCache.isDefaultIcon(wai.bitmap, wai.user)) {
                     logASplit("tryLoadWorkspaceIconsInBulk: default icon found for "
                             + wai.getTargetComponent() + ", will attempt to load from iconBlob");

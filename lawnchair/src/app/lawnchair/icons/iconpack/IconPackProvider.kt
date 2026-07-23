@@ -23,6 +23,8 @@ class IconPackProvider @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : SafeCloseable {
 
+    // getIconPack is called from MODEL_EXECUTOR and the main thread concurrently;
+    // plain mutableMapOf + getOrPut is not thread-safe.
     private val iconPacks = mutableMapOf<String, IconPack?>()
 
     fun getIconPackOrSystem(packageName: String): IconPack? {
@@ -31,14 +33,14 @@ class IconPackProvider @Inject constructor(
     }
 
     fun getIconPack(packageName: String): IconPack? {
-        if (packageName.isEmpty()) {
-            return null
-        }
-        return iconPacks.getOrPut(packageName) {
-            try {
-                CustomIconPack(context, packageName)
-            } catch (_: PackageManager.NameNotFoundException) {
-                null
+        if (packageName.isEmpty()) return null
+        synchronized(iconPacks) {
+            return iconPacks.getOrPut(packageName) {
+                try {
+                    CustomIconPack(context, packageName)
+                } catch (_: PackageManager.NameNotFoundException) {
+                    null
+                }
             }
         }
     }

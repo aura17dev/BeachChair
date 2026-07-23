@@ -68,6 +68,14 @@ public class CacheDataUpdatedTask implements ModelUpdateTask {
                         if (si.itemType == LauncherSettings.Favorites.ITEM_TYPE_APPLICATION
                                 && isValidShortcut(si) && cn != null
                                 && mPackages.contains(cn.getPackageName())) {
+                            // Lawnchair: preserve user custom icons (per-item DB blob) across cache
+                            // updates. Re-fetching from the cache would overwrite the custom icon with
+                            // the app default — the reason CustomizeDialog used to always write the
+                            // global override (which leaked custom icons onto every surface).
+                            if ((si.runtimeStatusFlags
+                                    & WorkspaceItemInfo.FLAG_CUSTOM_DB_ICON) != 0) {
+                                return false;
+                            }
                             iconCache.getTitleAndIcon(si, si.getMatchingLookupFlag());
                             return true;
                         }

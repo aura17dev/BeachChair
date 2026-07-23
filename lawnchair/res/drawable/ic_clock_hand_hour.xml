@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Hour hand body -->
+    <path
+        android:strokeColor="#C9B8D8"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 100,115 L 100,50" />
+
+    <!-- Center dot (circle drawn as two arcs) -->
+    <path
+        android:fillColor="#C9B8D8"
+        android:pathData="M 100,95 a 5,5 0 1,0 0.001,0 Z" />
+</vector>

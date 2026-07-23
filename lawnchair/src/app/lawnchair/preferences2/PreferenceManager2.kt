@@ -580,6 +580,11 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = context.resources.getBoolean(R.bool.config_default_enable_fuzzy_search),
     )
 
+    val showMostLaunchedRow = preference(
+        key = booleanPreferencesKey(name = "show_most_launched_row"),
+        defaultValue = false,
+    )
+
     val closingAppOverlay = preference(
         key = stringPreferencesKey(name = "closing_app_overlay"),
         defaultValue = FullScreenOverlayMode.fromValue(context.resources.getString(R.string.config_default_overlay)),
@@ -761,6 +766,21 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = SmartspaceCalendar.fromString(context.getString(R.string.config_default_smart_space_calendar)),
         parse = { SmartspaceCalendar.fromString(it) },
         save = { it.toString() },
+    )
+
+    val smartspaceClockSize = preference(
+        key = intPreferencesKey(name = "smartspace_clock_size"),
+        defaultValue = 20,
+    )
+
+    val smartspaceBoldClock = preference(
+        key = booleanPreferencesKey(name = "smartspace_bold_clock"),
+        defaultValue = false,
+    )
+
+    val smartspaceCardHeight = preference(
+        key = intPreferencesKey(name = "smartspace_card_height"),
+        defaultValue = 104,
     )
 
     val smartspacerMaxCount = preference(

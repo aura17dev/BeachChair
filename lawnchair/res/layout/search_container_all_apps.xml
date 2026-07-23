@@ -44,19 +44,39 @@
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:layout_marginStart="8dp"
-                android:layout_toStartOf="@id/page_menu_btn"
+                android:layout_toStartOf="@id/page_actions_container"
                 android:textSize="28sp"
                 android:textStyle="bold"
                 android:textColor="?android:textColorPrimary"
                 android:text="All Apps" />
 
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/page_menu_btn"
+            <LinearLayout
+                android:id="@+id/page_actions_container"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:visibility="gone" />
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/most_used_btn"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/pill_ripple"
+                    android:contentDescription="@string/most_used_apps_label"
+                    android:padding="12dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_sparkle"
+                    android:tint="?android:textColorSecondary"
+                    android:visibility="gone" />
+
+                <androidx.compose.ui.platform.ComposeView
+                    android:id="@+id/page_menu_btn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
         </RelativeLayout>
 

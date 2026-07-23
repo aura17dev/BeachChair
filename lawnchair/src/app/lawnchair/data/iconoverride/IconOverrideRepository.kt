@@ -13,8 +13,8 @@ import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.util.SafeCloseable
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import app.lawnchair.LauncherDispatchers
 import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOn
@@ -43,7 +43,7 @@ class IconOverrideRepository @Inject constructor(
     init {
         scope.launch {
             dao.observeAll()
-                .flowOn(Dispatchers.IO)
+                .flowOn(LauncherDispatchers.dbIO)
                 .collect { overrides ->
                     _overridesMap = overrides.associateBy(
                         keySelector = { it.target },
@@ -96,12 +96,16 @@ class IconOverrideRepository @Inject constructor(
         // Update the in-memory map immediately so the icon provider sees the new override
         // before MODEL_EXECUTOR runs updateIconsForPkg. Without this, the background thread
         // reads a stale overridesMap and caches the old icon for all subsequent getTitleAndIcon calls.
-        val previous = _overridesMap
-        _overridesMap = _overridesMap + (target to item)
+        val previousOverrides = _overridesMap
+        val previousFallback = _packageFallbackMap
+        val newOverrides = _overridesMap + (target to item)
+        _overridesMap = newOverrides
+        _packageFallbackMap = buildFallbackMap(newOverrides)
         try {
             dao.insert(IconOverride(target, item))
         } catch (e: Exception) {
-            _overridesMap = previous
+            _overridesMap = previousOverrides
+            _packageFallbackMap = previousFallback
             throw e
         }
         // Call directly — the old queue-based approach had a race where Room's InvalidationTracker
@@ -110,16 +114,29 @@ class IconOverrideRepository @Inject constructor(
     }
 
     suspend fun deleteOverride(target: ComponentKey) {
-        val previous = _overridesMap
-        _overridesMap = _overridesMap - target
+        val previousOverrides = _overridesMap
+        val previousFallback = _packageFallbackMap
+        val newOverrides = _overridesMap - target
+        _overridesMap = newOverrides
+        _packageFallbackMap = buildFallbackMap(newOverrides)
         try {
             dao.delete(target)
         } catch (e: Exception) {
-            _overridesMap = previous
+            _overridesMap = previousOverrides
+            _packageFallbackMap = previousFallback
             throw e
         }
         updatePackageIcons(target)
     }
+
+    private fun buildFallbackMap(overridesMap: Map<ComponentKey, IconPickerItem>): Map<PackageUserKey, IconOverride> =
+        overridesMap.entries
+            .groupBy { (key, _) -> PackageUserKey(key.componentName.packageName, key.user) }
+            .filterValues { it.size == 1 }
+            .mapValues { (_, entries) ->
+                val (key, pickerItem) = entries.first()
+                IconOverride(key, pickerItem)
+            }
 
     fun observeTarget(target: ComponentKey) = dao.observeTarget(target)
 

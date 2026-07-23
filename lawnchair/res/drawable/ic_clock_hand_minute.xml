@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Minute hand body (longer, thinner) -->
+    <path
+        android:strokeColor="#C9B8D8"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M 100,118 L 100,18" />
+
+    <!-- Center dot -->
+    <path
+        android:fillColor="#C9B8D8"
+        android:pathData="M 100,96.5 a 3.5,3.5 0 1,0 0.001,0 Z" />
+</vector>

@@ -141,6 +141,14 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
     public static final int FLAG_SUPPORTS_MULTI_INSTANCE = 1 << 16;
 
     /**
+     * Lawnchair: set when this item's icon was loaded from a user-chosen custom icon stored as a
+     * per-item DB blob (dock/home "apply icon to this surface"). Used to stop cache/package updates
+     * from overwriting the custom icon with the app's default. Not set for restored/archived
+     * placeholder icons, which legitimately update once the app installs.
+     */
+    public static final int FLAG_CUSTOM_DB_ICON = 1 << 17;
+
+    /**
      * Status associated with the system state of the underlying item. This is calculated every
      * time a new info is created and not persisted on the disk.
      */

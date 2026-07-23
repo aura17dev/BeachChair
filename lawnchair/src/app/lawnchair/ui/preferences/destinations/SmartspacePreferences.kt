@@ -125,6 +125,41 @@ private fun LawnchairSmartspaceSettings(
                 }
         }
         SmartspaceDateAndTimePreferences()
+        SmartspaceAppearancePreferences()
+    }
+}
+
+@Composable
+private fun SmartspaceAppearancePreferences(
+    modifier: Modifier = Modifier,
+) {
+    val prefs2 = preferenceManager2()
+    PreferenceGroup(
+        heading = stringResource(id = R.string.smartspace_appearance),
+        modifier = modifier.padding(top = 8.dp),
+    ) {
+        Item {
+            SliderPreference(
+                label = stringResource(id = R.string.smartspace_clock_size),
+                adapter = prefs2.smartspaceClockSize.getAdapter(),
+                valueRange = 14..32,
+                step = 1,
+            )
+        }
+        Item {
+            SwitchPreference(
+                adapter = prefs2.smartspaceBoldClock.getAdapter(),
+                label = stringResource(id = R.string.smartspace_bold_clock),
+            )
+        }
+        Item {
+            SliderPreference(
+                label = stringResource(id = R.string.smartspace_card_height),
+                adapter = prefs2.smartspaceCardHeight.getAdapter(),
+                valueRange = 72..144,
+                step = 8,
+            )
+        }
     }
 }
 

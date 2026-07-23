@@ -13,7 +13,14 @@ import me.xdrop.fuzzywuzzy.FuzzySearch
 import me.xdrop.fuzzywuzzy.algorithms.WeightedRatio
 
 object SearchUtils {
-    fun normalSearch(apps: List<AppInfo>, query: String, maxResultsCount: Int, hiddenApps: Set<String>, hiddenAppsInSearch: String): List<AppInfo> {
+    fun normalSearch(
+        apps: List<AppInfo>,
+        query: String,
+        maxResultsCount: Int,
+        hiddenApps: Set<String>,
+        hiddenAppsInSearch: String,
+        usageScore: (AppInfo) -> Double = { 0.0 },
+    ): List<AppInfo> {
         // Do an intersection of the words in the query and each title, and filter out all the
         // apps that don't match all of the words in the query.
         val queryTextLower = query.lowercase(Locale.getDefault())
@@ -21,11 +28,19 @@ object SearchUtils {
         return apps.asSequence()
             .filter { StringMatcherUtility.matches(queryTextLower, it.title.toString(), matcher) }
             .filterHiddenApps(queryTextLower, hiddenApps, hiddenAppsInSearch)
+            .sortedByDescending { usageScore(it) }
             .take(maxResultsCount)
             .toList()
     }
 
-    fun fuzzySearch(apps: List<AppInfo>, query: String, maxResultsCount: Int, hiddenApps: Set<String>, hiddenAppsInSearch: String): List<AppInfo> {
+    fun fuzzySearch(
+        apps: List<AppInfo>,
+        query: String,
+        maxResultsCount: Int,
+        hiddenApps: Set<String>,
+        hiddenAppsInSearch: String,
+        usageScore: (AppInfo) -> Double = { 0.0 },
+    ): List<AppInfo> {
         val queryTextLower = query.lowercase(Locale.getDefault())
         val filteredApps = apps.asSequence()
             .filterHiddenApps(queryTextLower, hiddenApps, hiddenAppsInSearch)
@@ -38,7 +53,11 @@ object SearchUtils {
             65,
         )
 
-        return matches.take(maxResultsCount)
+        // Blend fuzzy similarity (0–100) with a capped usage bonus (up to +15 points).
+        // This keeps strong fuzzy matches at the top while letting launch frequency break ties.
+        return matches.take(maxResultsCount * 2)
+            .sortedByDescending { it.score + (usageScore(it.referent) * 5.0).toInt().coerceAtMost(15) }
+            .take(maxResultsCount)
             .map { it.referent }
     }
 

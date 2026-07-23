@@ -7,12 +7,12 @@ import app.lawnchair.icons.ClockMetadata
 import app.lawnchair.icons.picker.IconEntry
 import app.lawnchair.icons.picker.IconPickerCategory
 import app.lawnchair.icons.picker.IconPickerItem
+import app.lawnchair.LauncherDispatchers
 import com.android.launcher3.compat.AlphabeticIndexCompat
 import java.util.concurrent.Semaphore
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.plus
@@ -29,7 +29,7 @@ sealed class IconPack(
     private val alphabeticIndexCompat by lazy { AlphabeticIndexCompat(context) }
 
     protected fun startLoad() {
-        deferredLoad = scope.async(Dispatchers.IO) {
+        deferredLoad = scope.async(LauncherDispatchers.iconIO) {
             loadInternal()
             waiter?.release()
             waiter = null
@@ -85,6 +85,6 @@ sealed class IconPack(
     }
 
     companion object {
-        private val scope = CoroutineScope(Dispatchers.IO) + CoroutineName("IconPack")
+        private val scope = CoroutineScope(LauncherDispatchers.iconIO) + CoroutineName("IconPack")
     }
 }

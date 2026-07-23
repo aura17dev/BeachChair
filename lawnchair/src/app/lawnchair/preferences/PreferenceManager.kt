@@ -75,6 +75,10 @@ class PreferenceManager @Inject constructor(
     val folderRows = IdpIntPref("pref_folderRows", { numFolderRows[INDEX_DEFAULT] }, reloadGrid)
 
     val drawerOpacity = FloatPref("pref_drawerOpacity", .5f, recreate)
+    // Blur the home screen (workspace + hotseat) that shows through a low-opacity drawer.
+    val drawerBlurHome = BoolPref("pref_drawerBlurHome", false)
+    // Blur strength as a 0..1 fraction, mapped to a pixel radius when applied.
+    val drawerBlurHomeRadius = FloatPref("pref_drawerBlurHomeRadius", .5f)
     val coloredBackgroundLightness = FloatPref("pref_coloredBackgroundLightness", 1F)
     val feedProvider = StringPref("pref_feedProvider", "")
     val ignoreFeedWhitelist = BoolPref("pref_ignoreFeedWhitelist", false)

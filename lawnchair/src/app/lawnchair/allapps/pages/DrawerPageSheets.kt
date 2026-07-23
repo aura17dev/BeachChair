@@ -4,8 +4,10 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
@@ -59,10 +64,9 @@ fun AddAppsToPageSheet(
     var selectedKeys by remember { mutableStateOf<Set<ComponentKey>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredApps = if (searchQuery.isBlank()) {
-        apps
-    } else {
-        apps.filter { it.label.contains(searchQuery, ignoreCase = true) }
+    val filteredApps = remember(searchQuery, apps) {
+        if (searchQuery.isBlank()) apps
+        else apps.filter { it.label.contains(searchQuery, ignoreCase = true) }
     }
 
     Column(
@@ -231,60 +235,7 @@ fun CreatePageSheet(
         }
 
         if (pickerExpanded) {
-            Spacer(modifier = Modifier.height(8.dp))
-            androidx.compose.foundation.lazy.LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (selectedIcon == null) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                            .clickable { selectedIcon = null }
-                            .padding(8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "None",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedIcon == null) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                items(LucideIconsMap.toList(), key = { (name, _) -> name }) { (name, vector) ->
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (selectedIcon == name) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                            .clickable { selectedIcon = name }
-                            .padding(10.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = vector,
-                            contentDescription = name,
-                            modifier = Modifier.size(24.dp),
-                            tint = if (selectedIcon == name) MaterialTheme.colorScheme.onPrimaryContainer
-                                   else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+            IconPickerGrid(selectedIcon = selectedIcon, onSelect = { selectedIcon = it })
         }
 
         if (selectedIcon != null) {
@@ -432,60 +383,7 @@ fun RenamePageSheet(
         }
 
         if (pickerExpanded) {
-            Spacer(modifier = Modifier.height(8.dp))
-            androidx.compose.foundation.lazy.LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (selectedIcon == null) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                            .clickable { selectedIcon = null }
-                            .padding(8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "None",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedIcon == null) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                items(LucideIconsMap.toList(), key = { (name, _) -> name }) { (name, vector) ->
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                if (selectedIcon == name) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                            .clickable { selectedIcon = name }
-                            .padding(10.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = vector,
-                            contentDescription = name,
-                            modifier = Modifier.size(24.dp),
-                            tint = if (selectedIcon == name) MaterialTheme.colorScheme.onPrimaryContainer
-                                   else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+            IconPickerGrid(selectedIcon = selectedIcon, onSelect = { selectedIcon = it })
         }
 
         if (selectedIcon != null) {
@@ -756,6 +654,65 @@ fun IconStyleSheet(
             onClick = onDismiss,
             modifier = Modifier.align(Alignment.End),
         ) { Text("Cancel") }
+    }
+}
+
+@Composable
+private fun IconPickerGrid(
+    selectedIcon: String?,
+    onSelect: (String?) -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(6),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 224.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+    ) {
+        item {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (selectedIcon == null) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    )
+                    .clickable { onSelect(null) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "—",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selectedIcon == null) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        gridItems(LucideIconsList, key = { (name, _) -> name }) { (name, vector) ->
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (selectedIcon == name) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    )
+                    .clickable { onSelect(name) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = vector,
+                    contentDescription = name,
+                    modifier = Modifier.size(22.dp),
+                    tint = if (selectedIcon == name) MaterialTheme.colorScheme.onPrimaryContainer
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

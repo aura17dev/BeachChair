@@ -111,3 +111,6 @@ val LucideIconsMap: Map<String, ImageVector> = mapOf(
     "ChevronDown" to Lucide.ChevronDown,
     "ArrowRight" to Lucide.ArrowRight,
 )
+
+// Pre-computed list so Compose items() never allocates on recomposition.
+val LucideIconsList: List<Pair<String, ImageVector>> = LucideIconsMap.toList()

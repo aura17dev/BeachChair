@@ -12,6 +12,7 @@ import android.view.View.MeasureSpec.makeMeasureSpec
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.viewpager.widget.ViewPager
+import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.smartspace.model.SmartspaceTarget
 import app.lawnchair.smartspace.provider.SmartspaceProvider
 import app.lawnchair.util.repeatOnAttached
@@ -27,6 +28,7 @@ class BcSmartspaceView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs) {
 
     private val provider = SmartspaceProvider.INSTANCE.get(context)
+    private val prefs = PreferenceManager2.getInstance(context)
 
     private lateinit var viewPager: ViewPager
     private lateinit var indicator: PageIndicator
@@ -34,6 +36,7 @@ class BcSmartspaceView @JvmOverloads constructor(
     private var scrollState = ViewPager.SCROLL_STATE_IDLE
     private var pendingTargets: List<SmartspaceTarget>? = null
     private var runningAnimation: Animator? = null
+    private var smartspaceHeightPx = context.resources.getDimensionPixelSize(R.dimen.enhanced_smartspace_height)
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -70,13 +73,18 @@ class BcSmartspaceView @JvmOverloads constructor(
             targets
                 .onEach(::onSmartspaceTargetsUpdate)
                 .launchIn(this)
+            prefs.smartspaceCardHeight.get()
+                .onEach { dp ->
+                    smartspaceHeightPx = (dp * resources.displayMetrics.density).roundToInt()
+                    requestLayout()
+                }
+                .launchIn(this)
         }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val height = MeasureSpec.getSize(heightMeasureSpec)
-        val smartspaceHeight =
-            context.resources.getDimensionPixelSize(R.dimen.enhanced_smartspace_height)
+        val smartspaceHeight = smartspaceHeightPx
         if (height <= 0 || height >= smartspaceHeight) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             scaleX = 1f

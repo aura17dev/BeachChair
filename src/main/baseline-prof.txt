@@ -1,0 +1,51 @@
+# Hand-curated baseline profile rules for BeachChair/Lawnchair.
+# Merged with the generated profile at build time. Format: ART profile HRF.
+# Flags: H=hot S=startup P=post-startup. Class entries (no method) are startup classes.
+#
+# To regenerate the machine-generated half, run a Macrobenchmark with
+# BaselineProfileRule covering drawer-open, search-focus, and icon-picker journeys.
+
+# ── Launcher startup ─────────────────────────────────────────────────────────
+Lapp/lawnchair/LawnchairLauncher;
+HSPLapp/lawnchair/LawnchairLauncher;->onCreate(Landroid/os/Bundle;)V
+SPLapp/lawnchair/LawnchairLauncher;->onResume()V
+
+# ── App drawer ───────────────────────────────────────────────────────────────
+Lapp/lawnchair/allapps/AllAppsSearchInput;
+SPLapp/lawnchair/allapps/AllAppsSearchInput;->initializeSearch(Lcom/android/launcher3/allapps/AllAppsStore;)V
+SPLapp/lawnchair/allapps/AllAppsSearchInput;->showTabBar()V
+SPLapp/lawnchair/allapps/AllAppsSearchInput;->hideTabBar()V
+SPLapp/lawnchair/allapps/AllAppsSearchInput;->showMostUsedSheet()V
+
+# ── Icon loading ─────────────────────────────────────────────────────────────
+Lapp/lawnchair/icons/LawnchairIconProvider;
+HSPLapp/lawnchair/icons/LawnchairIconProvider;->getIcon(Landroid/content/pm/PackageItemInfo;Landroid/content/pm/ApplicationInfo;I)Landroid/graphics/drawable/Drawable;
+HSPLapp/lawnchair/icons/LawnchairIconProvider;->getThemeDataForPackage(Ljava/lang/String;)Lcom/android/launcher3/icons/LauncherIconProvider$ThemeData;
+Lapp/lawnchair/icons/iconpack/IconPack;
+SPLapp/lawnchair/icons/iconpack/IconPack;->loadBlocking()V
+Lapp/lawnchair/icons/iconpack/CustomIconPack;
+SPLapp/lawnchair/icons/iconpack/CustomIconPack;->getIcon(Landroid/content/ComponentName;)Lapp/lawnchair/icons/picker/IconEntry;
+Lapp/lawnchair/icons/iconpack/IconPackProvider;
+SPLapp/lawnchair/icons/iconpack/IconPackProvider;->getIconPack(Ljava/lang/String;)Lapp/lawnchair/icons/iconpack/IconPack;
+
+# ── Icon overrides ───────────────────────────────────────────────────────────
+Lapp/lawnchair/data/iconoverride/IconOverrideRepository;
+SPLapp/lawnchair/data/iconoverride/IconOverrideRepository;->getOverrideItem(Lcom/android/launcher3/util/ComponentKey;)Lapp/lawnchair/icons/picker/IconPickerItem;
+
+# ── Bottom sheet ─────────────────────────────────────────────────────────────
+Lapp/lawnchair/views/ComposeBottomSheet;
+SPLapp/lawnchair/views/ComposeBottomSheet;->show()V
+SPLapp/lawnchair/views/ComposeBottomSheet;->setContent(Landroidx/compose/foundation/layout/PaddingValues;Lkotlin/jvm/functions/Function1;)V
+SPLapp/lawnchair/views/ComposeBottomSheet;->handleClose(Z)V
+
+# ── Most-used sheet ──────────────────────────────────────────────────────────
+Lapp/lawnchair/allapps/MostLaunchedTracker;
+SPLapp/lawnchair/allapps/MostLaunchedTracker;->topApps(I)Ljava/util/List;
+
+# ── Search ───────────────────────────────────────────────────────────────────
+Lapp/lawnchair/search/algorithms/LawnchairAppSearchAlgorithm;
+Lapp/lawnchair/search/algorithms/LawnchairSearchAlgorithm;
+
+# ── Preferences ──────────────────────────────────────────────────────────────
+Lapp/lawnchair/preferences2/PreferenceManager2;
+Lapp/lawnchair/preferences/PreferenceManager;

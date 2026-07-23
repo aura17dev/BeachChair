@@ -58,8 +58,8 @@ import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import android.content.ContentValues
 import android.content.Intent
 import androidx.core.graphics.drawable.toBitmap
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleEventObserver
@@ -514,7 +514,7 @@ fun CustomizeAppDialog(
                             }
                         }
                     }
-                    
+
                     val idsToUpdate = mutableListOf<Int>()
                     val idsToClear = mutableListOf<Int>()
 
@@ -555,21 +555,29 @@ fun CustomizeAppDialog(
                         dbController.update(contentValues, selection, null)
                     }
                     
-                    CoroutineScope(Dispatchers.Main).launch {
-                        if (finalResetDefault) {
-                            repo.deleteOverride(componentKey)
-                        } else if (finalStagedIconItem != null) {
-                            // Always write to IconOverrideRepository regardless of
-                            // applyToAppDrawer. The repo is what CacheDataUpdatedTask
-                            // consults at runtime (via LawnchairIconProvider.getIcon).
-                            // Without this, any app update triggers CacheDataUpdatedTask
-                            // which re-fetches from the icon provider, finds no override,
-                            // and reverts the dock icon to default — the DB blob is only
-                            // read at launcher startup via tryLoadWorkspaceIconsInBulk.
-                            repo.setOverride(componentKey, finalStagedIconItem)
+                    MainScope().launch {
+                        // The global IconOverrideRepository drives the app drawer (and, via the icon
+                        // cache, any surface not using a per-item DB blob). It is therefore the
+                        // "app drawer" surface's store — write to it only when App Drawer is selected,
+                        // otherwise a dock-only/home-only custom icon leaks onto the drawer.
+                        //
+                        // Dock/home persistence no longer depends on this: the per-item blob is marked
+                        // FLAG_CUSTOM_DB_ICON, so Cache/PackageUpdatedTask no longer revert it on app
+                        // update (which is the reason this used to write the repo unconditionally).
+                        when {
+                            finalResetDefault -> repo.deleteOverride(componentKey)
+                            finalApplyToAppDrawer -> {
+                                if (finalStagedIconItem != null) {
+                                    repo.setOverride(componentKey, finalStagedIconItem)
+                                }
+                                // No new icon staged: keep any existing drawer override as-is.
+                            }
+                            else -> {
+                                // App Drawer not selected: remove any override so the drawer (and
+                                // other cache-backed surfaces) fall back to the default icon.
+                                repo.deleteOverride(componentKey)
+                            }
                         }
-                        // If no new icon was staged and not resetting, leave the repo
-                        // as-is (preserving any existing override).
 
                         LauncherAppState.getInstance(applicationContext).model.forceReload()
                     }

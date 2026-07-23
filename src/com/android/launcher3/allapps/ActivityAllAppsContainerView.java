@@ -1620,9 +1620,19 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
             // When the background panel is blurred (or fallback), we don't add header protection.
             // TODO (b/414671116): Apply header protection whenever search bar is focused.
-            if (Flags.allAppsBlur()) {
+            // Lawnchair: the "Blur home screen behind drawer" feature makes the header protection
+            // both unnecessary and unwanted — it renders as a darker status-bar band over the
+            // otherwise-translucent blurred drawer. Skip it when that pref is on.
+            if (Flags.allAppsBlur() || pref.getDrawerBlurHome().get()) {
                 return;
             }
+        }
+
+        // Lawnchair: the non-sheet (phone) path draws its header protection in the else-branch below
+        // (a dark rect across the status bar + header area). Skip it too when blur is on, so the
+        // status bar stays translucent over the blurred drawer regardless of sheet/phone layout.
+        if (pref.getDrawerBlurHome().get()) {
+            return;
         }
 
         if (DEBUG_HEADER_PROTECTION) {

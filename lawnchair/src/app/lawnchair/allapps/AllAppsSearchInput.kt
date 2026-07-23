@@ -19,6 +19,7 @@ import android.view.ViewTreeObserver
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -115,6 +116,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
     private lateinit var appsView: ActivityAllAppsContainerView<*>
     private var searchAlgorithm: LawnchairSearchAlgorithm? = null
 
+    private lateinit var mostUsedBtn: android.widget.ImageButton
+    private var showMostLaunchedEnabled = false
+
     private var focusedResultTitle = ""
     private var canShowHint = false
 
@@ -174,6 +178,20 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 searchAlgorithm?.doZeroStateSearch(this@AllAppsSearchInput)
                 updateHint()
             }
+        }
+
+        mostUsedBtn = ViewCompat.requireViewById(this, R.id.most_used_btn)
+        mostUsedBtn.setOnClickListener { showMostUsedSheet() }
+        prefs2.showMostLaunchedRow.subscribeBlocking(scope = viewAttachedScope) { enabled ->
+            showMostLaunchedEnabled = enabled
+            if (enabled) {
+                mostUsedBtn.isVisible = true
+                mostUsedBtn.animate().alpha(1f).setDuration(150).start()
+            } else {
+                mostUsedBtn.animate().alpha(0f).setDuration(150)
+                    .withEndAction { mostUsedBtn.isVisible = false }.start()
+            }
+            updateHeaderVisibility()
         }
 
         prefs2.themedHotseatQsb.subscribeBlocking(scope = viewAttachedScope) { themed ->
@@ -285,6 +303,9 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         prefs2.enableDrawerPages.get()
             .onEach { enabled ->
                 drawerPagesEnabled = enabled
+                // Re-evaluate here, not only inside showTabBar(): if the tab bar already
+                // exists, showTabBar() early-returns and would never update the header.
+                updateHeaderVisibility()
                 if (enabled) {
                     showTabBar()
                 } else {
@@ -411,7 +432,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
                 .launchIn(viewAttachedScope)
 
             setupRecyclerListeners()
-            pageTitleContainer.isVisible = true
+            updateHeaderVisibility()
             pageMenuBtnView.isVisible = true
             pageMenuBtnView.setContent {
                 val isDark = com.android.launcher3.Utilities.isDarkTheme(context)
@@ -588,7 +609,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         pageTransitionRv?.animate()?.cancel()
         pageTransitionRv?.alpha = 1f
         pageTransitionRv = null
-        pageTitleContainer.isVisible = false
+        updateHeaderVisibility()
         pageMenuBtnView.isVisible = false
         updatePageTitle(null, emptyList())
     }
@@ -933,7 +954,36 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         input.initialize(appsView)
 
         if (prefs2.enableDrawerPages.firstBlockingCached()) {
+            // Set the field before showTabBar(): its updateHeaderVisibility() call reads it,
+            // and the async initPageTabs flow may not have emitted yet at this point.
+            drawerPagesEnabled = true
             showTabBar()
+        }
+    }
+
+    private fun updateHeaderVisibility() {
+        pageTitleContainer.isVisible = drawerPagesEnabled || showMostLaunchedEnabled
+    }
+
+    private fun showMostUsedSheet() {
+        // The button is wired up in onFinishInflate, but appsView isn't assigned until
+        // initializeSearch(); a tap in that window must be a no-op, not a crash.
+        if (!::appsView.isInitialized) return
+        val hostLauncher = context as? com.android.launcher3.Launcher ?: return
+        val top = MostLaunchedTracker.INSTANCE.get(context).topApps(8)
+        val apps = top.mapNotNull { appsView.appsStore?.getApp(it) }
+        if (apps.isEmpty()) return
+        ComposeBottomSheet.show(hostLauncher) {
+            val isDark = com.android.launcher3.Utilities.isDarkTheme(context)
+            app.lawnchair.ui.theme.LawnchairTheme(darkTheme = isDark) {
+                MostUsedSheetContent(
+                    apps = apps,
+                    onAppClick = { app ->
+                        close(true)
+                        launcher.startActivitySafely(null, app.intent, app)
+                    },
+                )
+            }
         }
     }
 

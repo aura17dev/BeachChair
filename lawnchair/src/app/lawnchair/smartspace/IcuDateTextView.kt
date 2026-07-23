@@ -8,6 +8,7 @@ import android.icu.text.DisplayContext
 import android.os.SystemClock
 import android.text.format.DateFormat.is24HourFormat
 import android.util.AttributeSet
+import android.util.TypedValue
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.smartspace.model.SmartspaceCalendar
 import app.lawnchair.smartspace.model.SmartspaceTimeFormat
@@ -42,6 +43,13 @@ class IcuDateTextView @JvmOverloads constructor(
                     calendar = it.first
                     dateTimeOptions = it.second
                     onTimeChanged(true)
+                }
+
+            combine(prefs.smartspaceClockSize.get(), prefs.smartspaceBoldClock.get()) { size, bold -> size to bold }
+                .subscribeBlocking(this) { (size, bold) ->
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, size.toFloat())
+                    paint.isFakeBoldText = bold
+                    invalidate()
                 }
 
             val intentFilter = IntentFilter()

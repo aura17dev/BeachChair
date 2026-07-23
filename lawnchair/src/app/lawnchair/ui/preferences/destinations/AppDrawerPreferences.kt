@@ -96,6 +96,25 @@ fun AppDrawerPreferences(
                     showAsPercentage = true,
                 )
             }
+            val blurHomeAdapter = prefs.drawerBlurHome.getAdapter()
+            Item {
+                SwitchPreference(
+                    label = stringResource(id = R.string.drawer_blur_home_label),
+                    description = stringResource(id = R.string.drawer_blur_home_description),
+                    adapter = blurHomeAdapter,
+                )
+            }
+            if (blurHomeAdapter.state.value) {
+                Item {
+                    SliderPreference(
+                        label = stringResource(id = R.string.drawer_blur_home_strength_label),
+                        adapter = prefs.drawerBlurHomeRadius.getAdapter(),
+                        step = 0.1f,
+                        valueRange = 0F..1F,
+                        showAsPercentage = true,
+                    )
+                }
+            }
             Item { ColorPreference(preference = prefs2.workProfileTabBackgroundColor) }
             Item {
                 SwitchPreference(

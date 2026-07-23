@@ -108,6 +108,12 @@ data object BeachMods : PreferenceRootRoute, PreferenceDeepLink {
 }
 
 @Serializable
+data object BeachModsAppDrawer : PreferenceRoute
+
+@Serializable
+data object BeachModsHomeScreen : PreferenceRoute
+
+@Serializable
 data object DebugMenu : PreferenceRootRoute
 
 @Serializable

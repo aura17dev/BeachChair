@@ -4,7 +4,6 @@ import android.content.Context
 import app.lawnchair.LawnchairApp
 import app.lawnchair.allapps.views.SearchItemBackground
 import app.lawnchair.allapps.views.SearchResultView.Companion.EXTRA_QUICK_LAUNCH
-import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.search.LawnchairSearchAdapterProvider
 import app.lawnchair.search.adapter.START_PAGE
 import app.lawnchair.search.adapter.SearchAdapterItem
@@ -31,7 +30,6 @@ import com.android.launcher3.Utilities
 import com.android.launcher3.allapps.BaseAllAppsAdapter
 import com.android.launcher3.search.SearchAlgorithm
 import com.android.launcher3.search.SearchCallback
-import app.lawnchair.preferences2.firstBlockingCached
 
 sealed class LawnchairSearchAlgorithm(
     protected val context: Context,
@@ -109,6 +107,16 @@ sealed class LawnchairSearchAlgorithm(
         }
 
         return filtered.mapIndexedNotNull { index, target ->
+            // App launcher rows: highlight only the best (quick-launch) match; the rest float
+            // with no card.
+            if (target.isApp && target.layoutType == ICON_HORIZONTAL_TEXT) {
+                val quick = target.extras.getBoolean(EXTRA_QUICK_LAUNCH, false)
+                return@mapIndexedNotNull SearchAdapterItem.createAdapterItem(
+                    target,
+                    if (quick) normalBackground else transparentBackground,
+                )
+            }
+
             val isFirst = index == 0 || filtered[index - 1].isDivider
             val isLast = index == filtered.lastIndex || filtered[index + 1].isDivider
 
@@ -252,18 +260,10 @@ sealed class LawnchairSearchAlgorithm(
         }
 
         fun create(context: Context): LawnchairSearchAlgorithm {
-            val prefs = PreferenceManager2.getInstance(context)
-            val searchAlgorithm = prefs.searchAlgorithm.firstBlockingCached()
-
-            return when {
-                searchAlgorithm == ASI_SEARCH && isASISearchEnabled(context) -> LawnchairASISearchAlgorithm(
-                    context,
-                )
-
-                searchAlgorithm == LOCAL_SEARCH -> LawnchairLocalSearchAlgorithm(context)
-
-                else -> LawnchairAppSearchAlgorithm(context)
-            }
+            // This launcher uses the drawer search solely to launch installed apps. Always use
+            // the app-only algorithm regardless of the stored preference, so no web, settings,
+            // contacts, files, calculator or other providers run or surface results.
+            return LawnchairAppSearchAlgorithm(context)
         }
     }
 }

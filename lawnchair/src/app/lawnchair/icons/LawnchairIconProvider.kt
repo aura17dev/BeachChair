@@ -69,10 +69,27 @@ class LawnchairIconProvider @Inject constructor(
     private var themeMapName: String = ""
     private var _themeMap: Map<String, ThemeData>? = null
 
+    // getLaunchIntentForPackage() is an IPC call; cache per package and clear on state change.
+    private val ABSENT_COMPONENT = ComponentName("", "")
+    private val componentNameCache = java.util.concurrent.ConcurrentHashMap<String, ComponentName>()
+
+    private fun getCachedComponentName(packageName: String): ComponentName? {
+        componentNameCache[packageName]?.let { return if (it === ABSENT_COMPONENT) null else it }
+        val found = context.packageManager.getLaunchIntentForPackage(packageName)?.component
+        componentNameCache[packageName] = found ?: ABSENT_COMPONENT
+        return found
+    }
+
+    override fun updateSystemState() {
+        super.updateSystemState()
+        componentNameCache.clear()
+    }
+
     val themeMap: Map<String, ThemeData>
         get() {
             if (!themedIconsEnabled) {
                 _themeMap = DISABLED_MAP
+                return DISABLED_MAP
             }
             if (_themeMap == null) {
                 _themeMap = getThemedIconMap()
@@ -91,23 +108,28 @@ class LawnchairIconProvider @Inject constructor(
 
     val systemIconState = themeManager.iconState
 
-    private fun resolveIconEntry(componentName: ComponentName, user: UserHandle): IconEntry? {
+    /**
+     * Returns the icon entry to use for [componentName], plus whether it came from a user
+     * override. User overrides must never be replaced by system theming (bug: theming would
+     * silently win and the user's custom icon would be invisible when themed icons are on).
+     */
+    private fun resolveIconEntry(componentName: ComponentName, user: UserHandle): Pair<IconEntry?, Boolean> {
         val componentKey = ComponentKey(componentName, user)
         // first look for user-overridden icon (tolerates launcher-activity class changes from
         // app updates via a unique package+user fallback)
         val overrideItem = overrideRepo.getOverrideItem(componentKey)
         if (overrideItem != null) {
-            return overrideItem.toIconEntry()
+            return overrideItem.toIconEntry() to true
         }
 
-        val iconPack = iconPack ?: return null
+        val iconPack = iconPack ?: return null to false
         // then look for dynamic calendar
         val calendarEntry = iconPack.getCalendar(componentName)
         if (calendarEntry != null) {
-            return calendarEntry
+            return calendarEntry to false
         }
         // finally, look for normal icon
-        return iconPack.getIcon(componentName)
+        return iconPack.getIcon(componentName) to false
     }
 
     override fun getIcon(
@@ -116,12 +138,15 @@ class LawnchairIconProvider @Inject constructor(
         iconDpi: Int,
     ): Drawable {
         val packageName = appInfo.packageName
-        val componentName = context.packageManager.getLaunchIntentForPackage(packageName)?.component
+        val componentName = getCachedComponentName(packageName)
         val user = UserHandle.getUserHandleForUid(appInfo.uid)
 
         var iconEntry: IconEntry? = null
+        var isOverride = false
         if (componentName != null) {
-            iconEntry = resolveIconEntry(componentName, user)
+            val (entry, override) = resolveIconEntry(componentName, user)
+            iconEntry = entry
+            isOverride = override
         }
 
         var iconPackEntry = iconEntry
@@ -131,7 +156,9 @@ class LawnchairIconProvider @Inject constructor(
 
         val themedColors = ThemedIconDrawable.getColors(context)
 
-        if (iconEntry != null) {
+        // User overrides take priority over system theming — never apply a themed icon on top
+        // of a custom icon the user explicitly chose.
+        if (iconEntry != null && !isOverride) {
             val clock = iconPackProvider.getClockMetadata(iconEntry)
 
             if (iconEntry.type == IconType.Calendar) {
@@ -379,12 +406,17 @@ class LawnchairIconProvider @Inject constructor(
             filter.addAction(ACTION_PACKAGE_CHANGED)
             filter.addAction(ACTION_PACKAGE_REMOVED)
             filter.addDataScheme("package")
-            filter.addDataSchemeSpecificPart(themeMapName, 0)
+            // Do NOT filter by themeMapName here — it is "" at construction time and never
+            // updates the registered filter. Instead check the package in onReceive().
             context.registerReceiver(this, filter, null, handler)
         }
 
         override fun onReceive(context: Context, intent: Intent) {
-            updateSystemState()
+            val changedPackage = intent.data?.schemeSpecificPart ?: return
+            val currentThemePack = themedIconSourcePref.get()
+            if (changedPackage == currentThemePack || changedPackage == context.packageName) {
+                updateSystemState()
+            }
         }
 
         override fun close() {

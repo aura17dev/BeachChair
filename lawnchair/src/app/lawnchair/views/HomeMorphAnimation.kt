@@ -7,58 +7,95 @@ import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
 import com.android.launcher3.R
 
 /**
- * Tuning presets for the app->home "morph back into icon" animation
- * ([LawnchairFloatingSurfaceView]). The morph *trajectory* (the app window shrinking) is
- * driven by the system via GestureNavContract and is NOT tunable here. What these presets
- * control is the part BeachChair owns: the icon's spring "landing" bounce and how quickly the
- * workspace scales back into place behind it.
+ * Presets for the app->home "close" animation ([LawnchairFloatingSurfaceView]).
  *
- * @param stiffness          spring stiffness for the icon landing (see SpringForce.STIFFNESS_*)
- * @param dampingRatio       spring damping for the icon landing (see SpringForce.DAMPING_RATIO_*)
- * @param velocityScale      multiplier on the icon's launch velocity (higher = more travel/overshoot)
- * @param contentDurationMult multiplier on CONTENT_SCALE_DURATION for the workspace zoom-in
+ * The visible, always-on part of the close is the home **content** (the workspace grid and the
+ * dock) springing back into place as the app window shrinks away — this plays for *every* app,
+ * whether or not it has an icon on the home screen. These presets parameterise that content
+ * settle, so each one reads as a genuinely different motion.
+ *
+ * (For apps that *do* have a home/dock icon, the system additionally morphs the shrinking window
+ * into that icon via GestureNavContract; that trajectory is not tunable here.)
+ *
+ * @param startScale         content scale at the start of the close, animating to 1 (smaller = more zoom)
+ * @param startRotation      content rotation (deg) at the start, animating to 0 (kept modest for full-screen)
+ * @param startTransYFraction content vertical offset at the start as a fraction of screen height, animating to 0
+ * @param overshootTension   bounce on settle: 0 = smooth decelerate, higher = springier overshoot
+ * @param durationMs         length of the content settle
  */
 enum class HomeMorphAnimation(
     @StringRes val labelRes: Int,
-    val stiffness: Float,
-    val dampingRatio: Float,
-    val velocityScale: Float,
-    val contentDurationMult: Float,
+    val startScale: Float,
+    val startRotation: Float = 0f,
+    val startTransYFraction: Float = 0f,
+    val overshootTension: Float = 0f,
+    val durationMs: Long,
 ) {
-    /** Current BeachChair feel: loose, playful low-stiffness wobble. */
+    /** Current BeachChair feel: a gentle zoom-in with a soft bounce. */
     SIGNATURE(
         R.string.beach_home_morph_signature,
-        stiffness = 200f,
-        dampingRatio = 0.2f,
-        velocityScale = 1f,
-        contentDurationMult = 3f,
+        startScale = 0.85f,
+        overshootTension = 1.5f,
+        durationMs = 450L,
     ),
 
-    /** Crisp, precise settle with minimal bounce and a quicker zoom. */
+    /** Crisp and quick, almost no bounce. */
     SNAPPY(
         R.string.beach_home_morph_snappy,
-        stiffness = 1500f,
-        dampingRatio = 0.75f,
-        velocityScale = 0.5f,
-        contentDurationMult = 2f,
+        startScale = 0.92f,
+        overshootTension = 0f,
+        durationMs = 260L,
     ),
 
-    /** Leans into the spring: more overshoot and wobble on landing. */
+    /** Leans into the bounce: deeper zoom and a big springy overshoot. */
     PLAYFUL(
         R.string.beach_home_morph_playful,
-        stiffness = 200f,
-        dampingRatio = 0.2f,
-        velocityScale = 1.7f,
-        contentDurationMult = 3f,
+        startScale = 0.7f,
+        overshootTension = 4f,
+        durationMs = 520L,
     ),
 
-    /** Keeps a little bounce but resolves the whole return noticeably faster. */
+    /** Resolves the whole return noticeably faster. */
     FAST(
         R.string.beach_home_morph_fast,
-        stiffness = 350f,
-        dampingRatio = 0.5f,
-        velocityScale = 1f,
-        contentDurationMult = 1.75f,
+        startScale = 0.9f,
+        overshootTension = 0.5f,
+        durationMs = 230L,
+    ),
+
+    /** The home swings in with a rotation and settles upright. */
+    SPIN(
+        R.string.beach_home_morph_spin,
+        startScale = 0.6f,
+        startRotation = 16f,
+        overshootTension = 2.5f,
+        durationMs = 540L,
+    ),
+
+    /** Big, loose, wobbly overshoot — bounces well past full size before settling. */
+    JELLY(
+        R.string.beach_home_morph_jelly,
+        startScale = 0.5f,
+        overshootTension = 7f,
+        durationMs = 620L,
+    ),
+
+    /** Drops down and rotated, then rights itself with a bounce. */
+    TUMBLE(
+        R.string.beach_home_morph_tumble,
+        startScale = 0.72f,
+        startRotation = -14f,
+        startTransYFraction = -0.12f,
+        overshootTension = 3f,
+        durationMs = 560L,
+    ),
+
+    /** Pops up from tiny and overshoots past full size before settling. */
+    POP(
+        R.string.beach_home_morph_pop,
+        startScale = 0.3f,
+        overshootTension = 5f,
+        durationMs = 500L,
     ),
     ;
 

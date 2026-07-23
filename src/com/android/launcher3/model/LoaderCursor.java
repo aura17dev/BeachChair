@@ -448,6 +448,9 @@ public class LoaderCursor extends CursorWrapper {
                     DEFAULT_LOOKUP_FLAG.withUseLowRes(useLowResIcon));
             if (loadedFromDb) {
                 loadIconFromDb(info);
+                // Lawnchair: this item carries a user custom icon (per-item DB blob). Mark it so
+                // cache/package updates don't overwrite it with the app default (see FLAG_CUSTOM_DB_ICON).
+                info.runtimeStatusFlags |= WorkspaceItemInfo.FLAG_CUSTOM_DB_ICON;
             } else if (mIconCache.isDefaultIcon(info.bitmap, user)) {
                 Log.d(TAG, "Default Icon found in cache, trying DB instead. "
                         + " Component=" + info.getTargetComponent());

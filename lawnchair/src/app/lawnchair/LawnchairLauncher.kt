@@ -18,12 +18,15 @@ package app.lawnchair
 
 import android.animation.AnimatorSet
 import android.app.ActivityOptions
+import android.app.WallpaperManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Pair
 import android.view.Display
 import android.view.View
@@ -35,9 +38,12 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairApp.Companion.showQuickstepWarningIfNecessary
 import app.lawnchair.allapps.DrawerArcDrift
+import app.lawnchair.allapps.DrawerDepth
 import app.lawnchair.allapps.DrawerEdgeFade
+import app.lawnchair.allapps.DrawerPop
 import app.lawnchair.allapps.DrawerRowCascade
 import app.lawnchair.allapps.DrawerScrollAnimation
+import app.lawnchair.allapps.DrawerSpin
 import app.lawnchair.allapps.DrawerVelocityTilt
 import app.lawnchair.allapps.IconScrollWave
 import app.lawnchair.animation.physicsAnimator
@@ -57,7 +63,10 @@ import app.lawnchair.theme.ThemeProvider
 import app.lawnchair.ui.popup.LauncherOptionsPopup
 import app.lawnchair.ui.popup.LawnchairShortcut
 import app.lawnchair.util.getThemedIconPacksInstalled
+import app.lawnchair.util.isOnePlusStock
+import app.lawnchair.util.isSamsungStock
 import app.lawnchair.util.unsafeLazy
+import app.lawnchair.views.DrawerHomeBlur
 import app.lawnchair.views.LawnchairFloatingSurfaceView
 import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.BaseActivity
@@ -78,7 +87,9 @@ import com.android.launcher3.uioverrides.states.BackgroundAppState
 import com.android.launcher3.uioverrides.states.OverviewState
 import com.android.launcher3.util.ActivityOptionsWrapper
 import com.android.launcher3.util.Executors
+import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.RunnableList
+import app.lawnchair.allapps.MostLaunchedTracker
 import com.android.launcher3.util.SystemUiController.UI_STATE_BASE_WINDOW
 import com.android.launcher3.util.Themes
 import com.android.launcher3.util.TouchController
@@ -219,10 +230,32 @@ class LawnchairLauncher : QuickstepLauncher(), androidx.lifecycle.ViewModelStore
                     DrawerVelocityTilt.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.TILT }
                     DrawerRowCascade.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.CASCADE }
                     DrawerArcDrift.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.ARC }
+                    DrawerDepth.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.DEPTH }
+                    DrawerPop.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.POP }
+                    DrawerSpin.install(appsView) { activeScrollAnimation == DrawerScrollAnimation.SPIN }
                 }
             }
         }
     }
+
+    private val drawerHomeBlurListener = object : StateManager.StateListener<LauncherState> {
+        override fun onStateTransitionStart(toState: LauncherState) {
+            if (!prefs.drawerBlurHome.get()) {
+                DrawerHomeBlur.clear(this@LawnchairLauncher)
+                return
+            }
+            // Blur the home only while the drawer is up; any other state settles back to sharp.
+            DrawerHomeBlur.setOpen(
+                this@LawnchairLauncher,
+                open = toState is AllAppsState,
+                strengthFraction = prefs.drawerBlurHomeRadius.get(),
+            )
+        }
+    }
+
+    // Refreshes the drawer's blurred-wallpaper backdrop when the wallpaper changes (its snapshot is
+    // cached). OnColorsChanged fires on wallpaper swaps; we just drop the cache so it reloads next open.
+    private var wallpaperColorsListener: WallpaperManager.OnColorsChangedListener? = null
 
     private lateinit var colorScheme: ColorScheme
     private var hasBackGesture = false
@@ -244,6 +277,17 @@ class LawnchairLauncher : QuickstepLauncher(), androidx.lifecycle.ViewModelStore
         launcher.stateManager.addStateListener(clearSearchStateListener)
         launcher.stateManager.addStateListener(iconBounceListener)
         launcher.stateManager.addStateListener(drawerScrollAnimListener)
+        launcher.stateManager.addStateListener(drawerHomeBlurListener)
+        if (Utilities.ATLEAST_O_MR1) {
+            val listener = WallpaperManager.OnColorsChangedListener { _, which ->
+                if (which and WallpaperManager.FLAG_SYSTEM != 0) {
+                    DrawerHomeBlur.invalidateWallpaper(this)
+                }
+            }
+            wallpaperColorsListener = listener
+            WallpaperManager.getInstance(this)
+                .addOnColorsChangedListener(listener, Handler(Looper.getMainLooper()))
+        }
         preferenceManager2.drawerScrollAnimation.get().distinctUntilChanged().onEach { anim ->
             activeScrollAnimation = anim
         }.launchIn(scope = lifecycleScope)
@@ -417,7 +461,27 @@ class LawnchairLauncher : QuickstepLauncher(), androidx.lifecycle.ViewModelStore
                     false,
                     AbstractFloatingView.TYPE_ICON_SURFACE,
                 )
-                LawnchairFloatingSurfaceView.show(this, gnc)
+                // Predictive back already reveals home correctly (it drives its own transition);
+                // only soften the system-owned swipe-up close, whose tail "pops" abruptly.
+                //
+                // HomeCloseReveal exists solely to cover the OnePlus app-close blank (the launcher
+                // window isn't composited during that OEM's swipe-up transition). It plays a scaled
+                // home snapshot over the top. On devices that DO composite the real content during
+                // the transition (e.g. Samsung/One UI), that snapshot becomes a visible duplicate
+                // of the real dock — it starts ~3% low from the centered 1.06x zoom and rises to
+                // converge, reading as a second dock "bubbling up". So only play it where the blank
+                // it compensates for actually occurs.
+                if (isOnePlusStock && !getPredictiveBackToHomeInProgress()) {
+                    app.lawnchair.views.HomeCloseReveal.play(this)
+                }
+                // The local morph surface hides and re-resolves the dock icon on every swipe-home.
+                // On Samsung/One UI cold launches that churn intermittently corrupts the dock (blank,
+                // wrong, or un-themed icons), while the native app-close transition is flawless
+                // (verified: Home-button close never corrupts). Skip the local surface on Samsung and
+                // let the system transition handle app->home; keep it on OnePlus/others where it works.
+                if (!isSamsungStock) {
+                    LawnchairFloatingSurfaceView.show(this, gnc)
+                }
             }
         }
     }
@@ -516,6 +580,18 @@ class LawnchairLauncher : QuickstepLauncher(), androidx.lifecycle.ViewModelStore
         }
     }
 
+    override fun startActivitySafely(v: View?, intent: Intent, item: ItemInfo?): RunnableList? {
+        val result = super.startActivitySafely(v, intent, item)
+        // Count every successful app launch (home, drawer, search, folder) so the
+        // most-launched row reflects real usage. Recency weighting lives in the tracker.
+        if (result != null) {
+            item?.targetComponent?.let { component ->
+                MostLaunchedTracker.INSTANCE.get(this).recordLaunch(ComponentKey(component, item.user))
+            }
+        }
+        return result
+    }
+
     private fun getActivityLaunchOptionsDefault(v: View?): ActivityOptionsWrapper {
         if (v == null) {
             return ActivityOptionsWrapper(Utilities.allowBGLaunch(ActivityOptions.makeBasic()), RunnableList())
@@ -579,6 +655,10 @@ class LawnchairLauncher : QuickstepLauncher(), androidx.lifecycle.ViewModelStore
         super.onDestroy()
         launcher.stateManager.removeStateListener(iconBounceListener)
         launcher.stateManager.removeStateListener(drawerScrollAnimListener)
+        launcher.stateManager.removeStateListener(drawerHomeBlurListener)
+        wallpaperColorsListener?.let {
+            WallpaperManager.getInstance(this).removeOnColorsChangedListener(it)
+        }
         _viewModelStore.clear()
         // Only actually closes if required, safe to call if not enabled
         SmartspacerClient.close()

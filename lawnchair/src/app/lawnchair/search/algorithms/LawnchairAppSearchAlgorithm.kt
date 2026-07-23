@@ -2,11 +2,9 @@ package app.lawnchair.search.algorithms
 
 import android.content.Context
 import android.os.Handler
+import app.lawnchair.allapps.MostLaunchedTracker
 import app.lawnchair.preferences2.PreferenceManager2
-import app.lawnchair.search.adapter.SPACE
-import app.lawnchair.search.adapter.SearchTargetCompat
 import app.lawnchair.search.adapter.SearchTargetFactory
-import app.lawnchair.util.isDefaultLauncher
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherModel
 import com.android.launcher3.allapps.BaseAllAppsAdapter
@@ -75,37 +73,20 @@ class LawnchairAppSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm(c
         apps: MutableList<AppInfo>,
         query: String,
     ): ArrayList<BaseAllAppsAdapter.AdapterItem> {
+        val tracker = MostLaunchedTracker.INSTANCE.get(context)
+        val usageScore = { app: AppInfo -> tracker.currentScore(app.toComponentKey()) }
         val appResults = if (enableFuzzySearch) {
-            SearchUtils.fuzzySearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch)
+            SearchUtils.fuzzySearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch, usageScore)
         } else {
-            SearchUtils.normalSearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch)
+            SearchUtils.normalSearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch, usageScore)
         }
 
-        val searchTargets = mutableListOf<SearchTargetCompat>()
+        // App launcher: every match is a big, full-width row. The first (best) match is
+        // highlighted; tapping any row launches that app.
+        val resultTargets = appResults.map { searchTargetFactory.createAppSearchTarget(it, bigRow = true) }
+        setFirstItemQuickLaunch(resultTargets)
 
-        if (appResults.isNotEmpty()) {
-            if (appResults.size == 1 && context.isDefaultLauncher()) {
-                val singleAppResult = appResults.firstOrNull()
-                val shortcuts = singleAppResult?.let { SearchUtils.getShortcuts(it, context) }
-                if (shortcuts != null && shortcuts.isNotEmpty()) {
-                    // Show app as a row alongside its shortcuts (no duplicate icon)
-                    singleAppResult.let { searchTargets.add(searchTargetFactory.createAppSearchTarget(it, true)) }
-                    searchTargets.addAll(shortcuts.map(searchTargetFactory::createShortcutTarget))
-                } else {
-                    // No shortcuts: show as icon
-                    appResults.mapTo(searchTargets, searchTargetFactory::createAppSearchTarget)
-                }
-            } else {
-                // Multiple results: show as icons
-                appResults.mapTo(searchTargets, searchTargetFactory::createAppSearchTarget)
-            }
-            searchTargets.add(searchTargetFactory.createHeaderTarget(SPACE))
-        }
-
-        searchTargetFactory.createMarketSearchTarget(query)?.let { searchTargets.add(it) }
-
-        setFirstItemQuickLaunch(searchTargets)
-        val adapterItems = transformSearchResults(searchTargets)
+        val adapterItems = transformSearchResults(resultTargets)
         return ArrayList(adapterItems)
     }
 }

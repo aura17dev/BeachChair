@@ -76,26 +76,15 @@ class SearchItemBackground(
         val color = if (isFocused) focusHighlight else groupHighlight
         if (color == 0) return
 
+        // App-icon results float with no card/highlight behind them.
+        if (child is SearchResultIcon) return
+
         paint.color = color
 
-        var left = child.left.toFloat() + searchDecorationPadding
-        var top = child.top.toFloat() + searchDecorationPadding
-        var right = child.right.toFloat() - searchDecorationPadding
-        var bottom = child.bottom.toFloat() - searchDecorationPadding
-
-        if (child is SearchResultIcon) {
-            val iconSize = child.iconSize.toFloat()
-            val desiredWidth = iconSize + 48f * density
-            val cellWidth = child.width.toFloat()
-            if (desiredWidth < cellWidth) {
-                val inset = (cellWidth - desiredWidth) / 2
-                left += inset
-                right -= inset
-            }
-            val insetVertical = 6f * density
-            top += insetVertical
-            bottom -= insetVertical
-        }
+        val left = child.left.toFloat() + searchDecorationPadding
+        val top = child.top.toFloat() + searchDecorationPadding
+        val right = child.right.toFloat() - searchDecorationPadding
+        val bottom = child.bottom.toFloat() - searchDecorationPadding
 
         tmpRect.set(left, top, right, bottom)
 

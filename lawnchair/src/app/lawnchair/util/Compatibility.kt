@@ -9,6 +9,8 @@ private const val TAG = "Compatibility"
 
 val isOnePlusStock = checkOnePlusStock()
 
+val isSamsungStock = checkSamsungStock()
+
 val isGestureNavContractCompatible = checkGestureNavContract()
 
 private fun checkOnePlusStock(): Boolean = when {
@@ -58,7 +60,12 @@ private fun checkGestureNavContract(): Boolean = when {
     // GestureNavContract extra, which gives the app->home icon-morph. handleGestureContract()
     // self-corrects by no-op'ing when GestureNavContract.fromIntent() returns null, so on builds
     // that don't send it we simply fall back with no jank. Users can still toggle it off.
-    checkSamsungStock() -> false
+    // Samsung/One UI is intentionally NOT excluded either, for the same reason as OnePlus above.
+    // Verified on a Galaxy S26 Ultra (SM-S948U, One UI 9.0, Android 17): swipe-up-to-home delivers
+    // a non-null GestureNavContract to handleGestureContract(), so the app->home icon-morph works.
+    // (The device also runs the AOSP gestural overlay, com.android.internal.systemui.navbar.gestural,
+    // rather than Samsung's sec_gestural variant.) Older One UI builds that don't send the extra
+    // cost nothing: fromIntent() returns null and handleGestureContract() no-ops.
     checkXiaomiStock() -> false
     checkHuaweiHonorStock() -> false
     checkOppoStock() -> false

@@ -34,6 +34,18 @@ enum class DrawerScrollAnimation(
         R.string.drawer_scroll_anim_arc,
         R.string.drawer_scroll_anim_arc_desc,
     ),
+    DEPTH(
+        R.string.drawer_scroll_anim_depth,
+        R.string.drawer_scroll_anim_depth_desc,
+    ),
+    POP(
+        R.string.drawer_scroll_anim_pop,
+        R.string.drawer_scroll_anim_pop_desc,
+    ),
+    SPIN(
+        R.string.drawer_scroll_anim_spin,
+        R.string.drawer_scroll_anim_spin_desc,
+    ),
     ;
 
     companion object {

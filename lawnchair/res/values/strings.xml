@@ -108,6 +108,9 @@
     <string name="wallpaper">Wallpaper</string>
     <string name="style">Style</string>
     <string name="background_opacity">Background opacity</string>
+    <string name="drawer_blur_home_label">Blur home screen</string>
+    <string name="drawer_blur_home_description">Blur the home screen showing through a low-opacity drawer background</string>
+    <string name="drawer_blur_home_strength_label">Blur strength</string>
     <string name="pref_all_apps_search_bar_background">Separated Search bar background</string>
 
     <!-- Toast text and tips -->
@@ -472,6 +475,10 @@
 
     <!-- Data and time format settings -->
     <string name="smartspace_calendar">Calendar</string>
+    <string name="smartspace_appearance">Appearance</string>
+    <string name="smartspace_clock_size">Clock text size</string>
+    <string name="smartspace_bold_clock">Bold clock</string>
+    <string name="smartspace_card_height">Widget height (dp)</string>
     <string name="smartspace_date_and_time">Date and time</string>
     <string name="smartspace_date">Date</string>
     <string name="smartspace_time">Time</string>
@@ -525,6 +532,7 @@
     <string name="smartspace_media_info_separator">" — "</string>
     <string name="accessibility_smartspace_page">Page %1$d of %2$d</string>
     <string name="smartspace_widget_placeholder_date">Fri, Mar 3</string>
+    <string name="beach_clock_widget_description">BeachChair Clock</string>
 
     <!--
 
@@ -1015,7 +1023,19 @@
     <!-- Beach Mods -->
     <string name="beach_mods_label">Beach Mods</string>
     <string name="beach_mods_description">Fun customizations for your Lawnchair</string>
-    <string name="beach_animations_heading">Animations</string>
+    <string name="beach_cat_drawer_description">Most-used apps and drawer motion</string>
+    <string name="beach_cat_home_description">App close animation and home motion</string>
+    <string name="beach_anim_drawer_open_heading">Motion · opening</string>
+    <string name="beach_anim_drawer_browse_heading">Motion · browsing</string>
+    <string name="beach_home_motion_heading">Motion</string>
+    <string name="beach_anim_home_heading">Home screen</string>
+    <string name="beach_drawer_heading">App drawer</string>
+    <string name="beach_search_heading">App search</string>
+    <string name="beach_most_launched_label">Most-used apps button</string>
+    <string name="beach_most_launched_description">Show a sparkle button in the drawer header that opens a card of your most-used apps</string>
+    <string name="most_used_apps_label">Most Used</string>
+    <string name="most_used_empty_title">No app data yet</string>
+    <string name="most_used_empty_subtitle">Apps you open most will appear here</string>
     <string name="beach_icon_bounce_label">Icon bounce</string>
     <string name="beach_icon_bounce_description">Icons gently bounce into place when opening the app drawer</string>
     <string name="beach_home_morph_label">App close animation</string>
@@ -1024,6 +1044,10 @@
     <string name="beach_home_morph_snappy">Snappy</string>
     <string name="beach_home_morph_playful">Playful</string>
     <string name="beach_home_morph_fast">Fast</string>
+    <string name="beach_home_morph_spin">Spin</string>
+    <string name="beach_home_morph_jelly">Jelly</string>
+    <string name="beach_home_morph_tumble">Tumble</string>
+    <string name="beach_home_morph_pop">Pop</string>
     <string name="beach_drawer_scroll_animation_label">Scroll animation</string>
     <string name="drawer_scroll_anim_none">None</string>
     <string name="drawer_scroll_anim_none_desc">No scroll animation</string>
@@ -1037,6 +1061,12 @@
     <string name="drawer_scroll_anim_cascade_desc">Rows slide in and fade as they scroll into view, like a waterfall</string>
     <string name="drawer_scroll_anim_arc">Arc drift</string>
     <string name="drawer_scroll_anim_arc_desc">Icons curve gently across the screen, bending the list into a flowing arc</string>
+    <string name="drawer_scroll_anim_depth">Depth</string>
+    <string name="drawer_scroll_anim_depth_desc">Icons shrink and dim toward the top and bottom edges for a depth-of-field feel</string>
+    <string name="drawer_scroll_anim_pop">Pop</string>
+    <string name="drawer_scroll_anim_pop_desc">Icons spring into view with a bouncy overshoot as you scroll</string>
+    <string name="drawer_scroll_anim_spin">Spin</string>
+    <string name="drawer_scroll_anim_spin_desc">Icons tumble with scroll speed and unwind upright when you stop</string>
     <string name="beach_drawer_overshoot_label">Drawer overshoot</string>
     <string name="beach_drawer_overshoot_description">App drawer bounces past its resting position when opened</string>
     <string name="beach_pixelated_fade_label">Pixelated fade</string>

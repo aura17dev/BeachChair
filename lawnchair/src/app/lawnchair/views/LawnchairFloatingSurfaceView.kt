@@ -22,9 +22,6 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import androidx.core.graphics.createBitmap
-import androidx.dynamicanimation.animation.DynamicAnimation
-import androidx.dynamicanimation.animation.SpringAnimation
-import androidx.dynamicanimation.animation.SpringForce
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.launcher
 import app.lawnchair.preferences2.PreferenceManager2
@@ -34,7 +31,6 @@ import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.CellLayout
 import com.android.launcher3.GestureNavContract
 import com.android.launcher3.Insettable
-import com.android.launcher3.LauncherAnimUtils
 import com.android.launcher3.QuickstepTransitionManager.CONTENT_SCALE_DURATION
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
@@ -44,7 +40,6 @@ import com.android.launcher3.util.MultiPropertyFactory
 import com.android.launcher3.util.window.RefreshRateTracker.Companion.getSingleFrameMs
 import com.android.launcher3.views.FloatingIconView.getLocationBoundsForView
 import com.android.launcher3.views.FloatingIconViewCompanion.setPropertiesVisible
-import java.util.function.Consumer
 import kotlin.math.roundToInt
 
 class LawnchairFloatingSurfaceView @JvmOverloads constructor(
@@ -71,6 +66,14 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     private var mContract: GestureNavContract? = null
     private var mMorphAnim: HomeMorphAnimation = HomeMorphAnimation.SIGNATURE
 
+    // The exact view we last hid via setIconVisible(false). Tracked separately from mIcon so we can
+    // always restore the specific view we hid, even if mIcon is reassigned or the hotseat rebinds a
+    // new BubbleTextView underneath us. Left un-restored, that view's icon stays permanently blank —
+    // the "app-close icon disappears" bug, which only surfaced once GNC was enabled on Samsung.
+    // (No timeout restore: the morph surface legitimately lingers on screen until the next gesture,
+    // so a timer would restore the real icon mid-linger and double it. Restore at teardown instead.)
+    private var mHiddenIcon: View? = null
+
     init {
         mSurfaceView.setLayerType(LAYER_TYPE_HARDWARE, null)
         mSurfaceView.setZOrderOnTop(true)
@@ -84,6 +87,9 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
 
     override fun handleClose(animate: Boolean) {
         setCurrentIconVisible(true)
+        // Belt-and-suspenders: if mIcon was reassigned away from the view we actually hid, the call
+        // above won't restore it. This does.
+        forceRestoreHiddenIcon()
         mLauncher.viewCache.recycleView(R.layout.floating_surface_view, this)
         mContract = null
         mIcon = null
@@ -97,6 +103,8 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     }
 
     private fun removeViewFromParent() {
+        // Never tear down while a home icon is still hidden by us.
+        forceRestoreHiddenIcon()
         if (mIconBitmap != null) {
             mIconBitmap!!.recycle()
             mIconBitmap = null
@@ -131,40 +139,13 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     fun getLauncherContentAnimator(
         startDelay: Int,
     ): Pair<AnimatorSet?, Runnable?> {
-        val launcherAnimator = AnimatorSet()
-        val endListener: Runnable?
-
-        val scales = floatArrayOf(mDeviceProfile.workspaceContentScale, 1f)
-
+        // The home content is not composited during the morph (the launcher window isn't resumed
+        // yet), so animating it here is invisible. The visible reveal is run by the launcher on
+        // resume instead (LawnchairLauncher.playCloseRevealAnimation). Here we only keep the
+        // background depth/blur and the pause/resume bookkeeping.
         mLauncher.pauseExpensiveViewUpdates()
-
-        val viewsToAnimate: MutableList<View?> = ArrayList<View?>()
-        val workspace = mLauncher.workspace
-        workspace.forEachVisiblePage(
-            Consumer { view: View? -> viewsToAnimate.add((view as CellLayout).shortcutsAndWidgets) },
-        )
-        viewsToAnimate.add(mLauncher.hotseat)
-
-        viewsToAnimate.forEach(
-            Consumer { view: View? ->
-                val scaleAnim =
-                    ObjectAnimator.ofFloat<View?>(view, LauncherAnimUtils.SCALE_PROPERTY, *scales)
-                        .setDuration((CONTENT_SCALE_DURATION * mMorphAnim.contentDurationMult).toLong())
-                scaleAnim.interpolator = Interpolators.DECELERATE_1_5
-                launcherAnimator.play(scaleAnim)
-            },
-        )
-
-        endListener = Runnable {
-            viewsToAnimate.forEach(
-                Consumer { view: View? ->
-                    LauncherAnimUtils.SCALE_PROPERTY.set(view, 1f)
-                    view!!.setLayerType(LAYER_TYPE_NONE, null)
-                },
-            )
-            mLauncher.resumeExpensiveViewUpdates()
-        }
-
+        val endListener = Runnable { mLauncher.resumeExpensiveViewUpdates() }
+        val launcherAnimator = AnimatorSet()
         launcherAnimator.setStartDelay(startDelay.toLong())
         return Pair<AnimatorSet?, Runnable?>(launcherAnimator, endListener)
     }
@@ -236,6 +217,7 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         getViewTreeObserver().removeOnGlobalLayoutListener(this)
         setCurrentIconVisible(true)
+        forceRestoreHiddenIcon()
     }
 
     override fun onGlobalLayout() {
@@ -260,6 +242,24 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
         synchronized(this) {
             val icon = getIcon()
 
+            // Resolve the icon's on-screen bounds BEFORE hiding it. On a cold launch
+            // getFirstHomeElementForAppClose can return a view that isn't laid out yet, so its
+            // location comes back as (0,0)/empty. Acting on that renders the morph surface as a ghost
+            // in the top-left corner AND leaves the real dock icon hidden (blank slot). Treat an
+            // unresolved location as "not ready": restore any hidden icon, hide the surface, and bail.
+            // onGlobalLayout re-runs this once the icon is actually laid out.
+            if (icon != null) {
+                getLocationBoundsForView(mLauncher, icon, false, mTmpPosition, mIconBounds)
+            }
+            val locationReady = icon != null && !mIconBounds.isEmpty &&
+                (mTmpPosition.left >= 1f || mTmpPosition.top >= 1f)
+            if (!locationReady) {
+                forceRestoreHiddenIcon()
+                mSurfaceView.visibility = INVISIBLE
+                return
+            }
+            mSurfaceView.visibility = VISIBLE
+
             val iconChanged = mIcon !== icon
             if (iconChanged) {
                 setCurrentIconVisible(true)
@@ -267,12 +267,9 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
                 setCurrentIconVisible(false)
             }
 
-            if (icon != null) {
-                getLocationBoundsForView(mLauncher, icon, false, mTmpPosition, mIconBounds)
-                if (mTmpPosition != mIconPosition) {
-                    mIconPosition.set(mTmpPosition)
-                    updateSurfaceViewLayout()
-                }
+            if (mTmpPosition != mIconPosition) {
+                mIconPosition.set(mTmpPosition)
+                updateSurfaceViewLayout()
             }
 
             sendIconInfo()
@@ -297,7 +294,6 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
                 if (mIcon == null) return@post
                 drawIconOnBitmap()
                 drawOnSurface()
-                bouncyIcon()
             }
         }
     }
@@ -324,26 +320,6 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
             }
             setCurrentIconVisible(false)
         }
-    }
-
-    private fun bouncyIcon() {
-        val icon = mIcon ?: return
-
-        val preset = mMorphAnim
-        val (startX, startY) = mIconPosition.left to mIconPosition.top - ((height * 0.2f) / 3)
-
-        listOf(
-            SpringAnimation(icon, DynamicAnimation.TRANSLATION_X, 1f).apply {
-                spring = SpringForce(1f).setStiffness(preset.stiffness)
-                    .setDampingRatio(preset.dampingRatio)
-                setStartVelocity((mIconPosition.left - startX) * 2 * preset.velocityScale)
-            },
-            SpringAnimation(icon, DynamicAnimation.TRANSLATION_Y, 1f).apply {
-                spring = SpringForce(1f).setStiffness(preset.stiffness)
-                    .setDampingRatio(preset.dampingRatio)
-                setStartVelocity((mIconPosition.top - startY) * 3 * preset.velocityScale)
-            },
-        ).forEach { it.start() }
     }
 
     private fun sendIconInfo() {
@@ -390,9 +366,22 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
     }
 
     private fun setCurrentIconVisible(isVisible: Boolean) {
-        if (mIcon != null) {
-            setPropertiesVisible(mIcon, isVisible)
+        val icon = mIcon ?: return
+        setPropertiesVisible(icon, isVisible)
+        if (isVisible) {
+            if (mHiddenIcon === icon) mHiddenIcon = null
+        } else {
+            // Restore any previously-hidden, different view before hiding a new one so we never
+            // leave two icons blank.
+            mHiddenIcon?.takeIf { it !== icon }?.let { setPropertiesVisible(it, true) }
+            mHiddenIcon = icon
         }
+    }
+
+    /** Unconditionally re-show whatever view we last hid; every teardown path funnels through here. */
+    private fun forceRestoreHiddenIcon() {
+        mHiddenIcon?.let { setPropertiesVisible(it, true) }
+        mHiddenIcon = null
     }
 
     companion object {
@@ -420,6 +409,13 @@ class LawnchairFloatingSurfaceView @JvmOverloads constructor(
                 object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
                         launcherContentAnimator.second!!.run()
+                        // Cold-launch fix: the morph leaves the real dock icon hidden via
+                        // setIconVisible(false) and relies on the surface to display it — but on a
+                        // cold launch the captured bitmap is empty, so the slot blanks until the next
+                        // gesture triggers handleClose. The morph has settled here, so restore the
+                        // real icon now. It's invisible under the still-on-top surface when the bitmap
+                        // is good, and shows through when the bitmap is blank.
+                        view.forceRestoreHiddenIcon()
                     }
                 },
             )

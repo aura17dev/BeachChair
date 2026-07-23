@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Outer circle -->
+    <path
+        android:strokeColor="#40C9B8D8"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M 100,100 m -90,0 a 90,90 0 1,0 180,0 a 90,90 0 1,0 -180,0" />
+
+    <!-- Major tick marks at 12, 3, 6, 9 -->
+    <path
+        android:strokeColor="#80C9B8D8"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 100,14 L 100,26" />
+    <path
+        android:strokeColor="#80C9B8D8"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 186,100 L 174,100" />
+    <path
+        android:strokeColor="#80C9B8D8"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 100,186 L 100,174" />
+    <path
+        android:strokeColor="#80C9B8D8"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M 14,100 L 26,100" />
+
+    <!-- Minor tick marks (every hour position) -->
+    <!-- 1 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 145,19.4 L 140,27.7" />
+    <!-- 2 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 180.6,55 L 172.3,60" />
+    <!-- 4 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 180.6,145 L 172.3,140" />
+    <!-- 5 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 145,180.6 L 140,172.3" />
+    <!-- 7 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 55,180.6 L 60,172.3" />
+    <!-- 8 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 19.4,145 L 27.7,140" />
+    <!-- 10 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 19.4,55 L 27.7,60" />
+    <!-- 11 o'clock -->
+    <path android:strokeColor="#40C9B8D8" android:strokeWidth="1.5" android:strokeLineCap="round"
+        android:pathData="M 55,19.4 L 60,27.7" />
+
+</vector>
