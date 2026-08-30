@@ -5,6 +5,7 @@ import android.os.Handler
 import app.lawnchair.allapps.MostLaunchedTracker
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.search.adapter.SearchTargetFactory
+import app.lawnchair.sexyspaces.SexySpacesBridge
 import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherModel
 import com.android.launcher3.allapps.BaseAllAppsAdapter
@@ -75,10 +76,11 @@ class LawnchairAppSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm(c
     ): ArrayList<BaseAllAppsAdapter.AdapterItem> {
         val tracker = MostLaunchedTracker.INSTANCE.get(context)
         val usageScore = { app: AppInfo -> tracker.currentScore(app.toComponentKey()) }
+        val effectiveHiddenApps = hiddenApps + SexySpacesBridge.hiddenKeysFor(apps, context)
         val appResults = if (enableFuzzySearch) {
-            SearchUtils.fuzzySearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch, usageScore)
+            SearchUtils.fuzzySearch(apps, query, maxResultsCount, effectiveHiddenApps, hiddenAppsInSearch, usageScore)
         } else {
-            SearchUtils.normalSearch(apps, query, maxResultsCount, hiddenApps, hiddenAppsInSearch, usageScore)
+            SearchUtils.normalSearch(apps, query, maxResultsCount, effectiveHiddenApps, hiddenAppsInSearch, usageScore)
         }
 
         // App launcher: every match is a big, full-width row. The first (best) match is

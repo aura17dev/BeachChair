@@ -4,6 +4,7 @@ import android.content.Context
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.search.algorithms.engine.SearchResult
 import app.lawnchair.search.algorithms.filterHiddenApps
+import app.lawnchair.sexyspaces.SexySpacesBridge
 import com.android.launcher3.model.AllAppsList
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.search.StringMatcherUtility
@@ -15,7 +16,7 @@ object AppSearchProvider {
 
     fun search(context: Context, query: String, allApps: AllAppsList): List<SearchResult.App> {
         val prefs = PreferenceManager2.getInstance(context)
-        val hiddenApps = prefs.hiddenApps.firstBlockingCached()
+        val hiddenApps = prefs.hiddenApps.firstBlockingCached() + SexySpacesBridge.hiddenKeysFor(allApps.data, context)
         val hiddenAppsInSearch = prefs.hiddenAppsInSearch.firstBlockingCached()
         val maxAppResults = prefs.maxAppSearchResultCount.firstBlockingCached()
         val enableFuzzySearch = prefs.enableFuzzySearch.firstBlockingCached()

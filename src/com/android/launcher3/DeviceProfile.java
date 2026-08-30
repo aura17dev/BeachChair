@@ -1901,7 +1901,33 @@ public class DeviceProfile {
                             + mInsets.right,
                     getHotseatBarBottomPadding());
         }
+        applyHotseatIconSpacingFactor(hotseatBarPadding);
         return hotseatBarPadding;
+    }
+
+    /**
+     * Lawnchair: scales the width of the band the hotseat icons are centered in, so the user can
+     * draw the dock icons closer together or spread them further apart. A factor of 1f is a no-op.
+     * The band is clamped so icons can never overflow the screen (factor &gt; 1) or pack tighter
+     * than icon-size + border-space, which would make them overlap (factor &lt; 1). Symmetric, so
+     * the icons stay centered. Only applies in portrait (non vertical-bar) layouts.
+     */
+    private void applyHotseatIconSpacingFactor(Rect hotseatBarPadding) {
+        if (preferenceManager2 == null || isVerticalBarLayout()) return;
+        float factor = preferenceManager2.getCached(
+                preferenceManager2.getHotseatIconSpacingFactor());
+        if (factor == 1f) return;
+
+        int availableWidth = mDeviceProperties.getAvailableWidthPx();
+        int currentBand = availableWidth - hotseatBarPadding.left - hotseatBarPadding.right;
+        if (currentBand <= 0) return;
+
+        int minBand = Math.min(getHotseatRequiredWidth(), currentBand);
+        int newBand = Utilities.boundToRange(
+                Math.round(currentBand * factor), minBand, availableWidth);
+        int delta = (currentBand - newBand) / 2; // > 0 shrinks the band (icons closer)
+        hotseatBarPadding.left += delta;
+        hotseatBarPadding.right += delta;
     }
 
     /** The margin between the edge of all apps and the edge of the first icon. */

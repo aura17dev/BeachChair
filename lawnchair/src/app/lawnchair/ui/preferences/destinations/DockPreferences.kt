@@ -156,6 +156,15 @@ fun GridSettings(prefs: PreferenceManager, prefs2: PreferenceManager2) {
         }
         Item {
             SliderPreference(
+                adapter = prefs2.hotseatIconSpacingFactor.getAdapter(),
+                label = stringResource(id = R.string.hotseat_icon_spacing_label),
+                valueRange = 0.5F..1.2F,
+                step = 0.05F,
+                showAsPercentage = true,
+            )
+        }
+        Item {
+            SliderPreference(
                 adapter = prefs2.hotseatBottomFactor.getAdapter(),
                 label = stringResource(id = R.string.hotseat_bottom_space_label),
                 valueRange = 0.0F..1.7F,
@@ -189,6 +198,7 @@ fun ColumnScope.DockPreferencesPreview(modifier: Modifier = Modifier) {
             prefs.hotseatQsbAlpha.getAdapter(),
             prefs.hotseatQsbStrokeWidth.getAdapter(),
             prefs2.hotseatBottomFactor.getAdapter(),
+            prefs2.hotseatIconSpacingFactor.getAdapter(),
             prefs2.strokeColorStyle.getAdapter(),
             prefs2.enableLabelInDock.getAdapter(),
             prefs.hotseatBG.getAdapter(),

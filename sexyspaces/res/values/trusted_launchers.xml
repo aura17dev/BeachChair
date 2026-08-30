@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AuraOS release certificate. BeachChair remains trusted through the signature flag. -->
+    <string-array name="trusted_launcher_certificates">
+        <item>e3acd7419fae20d121c63b73cfd232d13e27f95d44f1f1278251188be00eac64</item>
+    </string-array>
+</resources>

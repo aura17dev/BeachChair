@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <permission
+        android:name="app.beachchair.sexyspaces.permission.READ_PRIVATE_APPS"
+        android:knownCerts="@array/trusted_launcher_certificates"
+        android:protectionLevel="signature|knownSigner" />
+    <permission
+        android:name="app.beachchair.sexyspaces.permission.OPEN_UNLOCKED"
+        android:knownCerts="@array/trusted_launcher_certificates"
+        android:protectionLevel="signature|knownSigner" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".UnlockedLaunchActivity"
+            android:exported="true"
+            android:permission="app.beachchair.sexyspaces.permission.OPEN_UNLOCKED"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="app.beachchair.sexyspaces.action.OPEN_UNLOCKED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name=".PrivateAppsProvider"
+            android:authorities="app.beachchair.sexyspaces.privateapps"
+            android:exported="true"
+            android:readPermission="app.beachchair.sexyspaces.permission.READ_PRIVATE_APPS" />
+    </application>
+</manifest>

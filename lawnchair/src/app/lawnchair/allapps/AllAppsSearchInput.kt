@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Rect
+import android.os.SystemClock
 import android.provider.SearchRecentSuggestions
 import android.text.Selection
 import android.text.SpannableStringBuilder
@@ -54,6 +55,7 @@ import app.lawnchair.qsb.ThemingMethod
 import app.lawnchair.qsb.providers.Google
 import app.lawnchair.qsb.providers.GoogleGo
 import app.lawnchair.qsb.providers.PixelSearch
+import app.lawnchair.sexyspaces.SexySpacesBridge
 import app.lawnchair.qsb.setThemedIconResource
 import app.lawnchair.search.LawnchairRecentSuggestionProvider
 import app.lawnchair.search.algorithms.LawnchairSearchAlgorithm
@@ -121,6 +123,7 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
 
     private var focusedResultTitle = ""
     private var canShowHint = false
+    private var lastSexySpacesAutoLaunchAt = 0L
 
     private val supportBlur = BlurUtils.supportsBlursOnWindows()
     private val bg = if (supportBlur) {
@@ -273,7 +276,10 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
             beforeTextChanged = { _, _, _, _ ->
                 hint.isInvisible = true
             },
-            afterTextChanged = {
+            afterTextChanged = afterTextChanged@{
+                if (maybeAutoLaunchSexySpaces(it?.toString().orEmpty())) {
+                    return@afterTextChanged
+                }
                 updateHint()
                 if (input.text.isNullOrEmpty()) {
                     searchAlgorithm?.doZeroStateSearch(this)
@@ -297,6 +303,33 @@ class AllAppsSearchInput(context: Context, attrs: AttributeSet?) :
         }
 
         initPageTabs()
+    }
+
+    private fun maybeAutoLaunchSexySpaces(query: String): Boolean {
+        val trigger = query.trim().lowercase(Locale.ROOT)
+        val configuredTrigger = SexySpacesBridge.searchKeyword(context).lowercase(Locale.ROOT)
+        if (trigger != configuredTrigger && trigger !in setOf("spaces", "space", "sexy")) {
+            return false
+        }
+
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastSexySpacesAutoLaunchAt < 2_000L) {
+            return true
+        }
+
+        val intent = SexySpacesBridge.openUnlockedIntent(context) ?: return false
+        lastSexySpacesAutoLaunchAt = now
+
+        post {
+            input.reset()
+            runCatching {
+                context.startActivity(intent)
+            }.onFailure {
+                Log.w("AllAppsSearchInput", "Failed to launch Spaces", it)
+            }
+        }
+
+        return true
     }
 
     private fun initPageTabs() {

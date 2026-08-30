@@ -1,12 +1,16 @@
 package app.lawnchair.allapps
 
 import android.content.Context
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.launcher
 import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.sexyspaces.SexySpacesBridge
 import com.android.launcher3.InvariantDeviceProfile.OnIDPChangeListener
 import com.android.launcher3.allapps.AllAppsStore
 import com.android.launcher3.allapps.AlphabeticalAppsList
@@ -30,11 +34,20 @@ class LawnchairAlphabeticalAppsList<T>(
     where T : Context, T : ActivityContext {
 
     private var hiddenApps: Set<String> = setOf()
+    private var sexySpacesComponents: Set<String> = setOf()
     private val prefs2 = PreferenceManager2.getInstance(context)
+    private val sexySpacesObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            sexySpacesComponents = SexySpacesBridge.refresh(context)
+            onAppsUpdated()
+        }
+    }
 
     init {
         context.launcher.deviceProfile.inv.addOnChangeListener(this)
         (context as? LifecycleOwner)?.lifecycle?.addObserver(this)
+        sexySpacesComponents = SexySpacesBridge.refresh(context)
+        context.contentResolver.registerContentObserver(SexySpacesBridge.privateAppsUri, false, sexySpacesObserver)
         try {
             prefs2.hiddenApps.onEach(launchIn = context.launcher.lifecycleScope) {
                 hiddenApps = it
@@ -47,6 +60,7 @@ class LawnchairAlphabeticalAppsList<T>(
 
     override fun onDestroy(owner: LifecycleOwner) {
         context.launcher.deviceProfile.inv.removeOnChangeListener(this)
+        context.contentResolver.unregisterContentObserver(sexySpacesObserver)
     }
 
     override fun updateItemFilter(itemFilter: Predicate<ItemInfo>?) {
@@ -54,8 +68,11 @@ class LawnchairAlphabeticalAppsList<T>(
             require(info is AppInfo) { "`info` must be an instance of `AppInfo`." }
             // Inline the ComponentKey string format to avoid allocating a ComponentKey object
             // on every app during each filter pass (ComponentKey.toString = "pkg/cls#userId").
-            val componentKey = "${info.componentName?.flattenToString()}#${info.user.hashCode()}"
-            (itemFilter?.test(info) != false) && !hiddenApps.contains(componentKey)
+            val componentName = info.componentName?.flattenToString()
+            val componentKey = "$componentName#${info.user.hashCode()}"
+            (itemFilter?.test(info) != false) &&
+                !hiddenApps.contains(componentKey) &&
+                componentName !in sexySpacesComponents
         }
         onAppsUpdated()
     }

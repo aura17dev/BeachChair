@@ -40,6 +40,13 @@
     <uses-permission android:name="android.permission.SUSPEND_APPS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.FLASHLIGHT" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="app.beachchair.sexyspaces.permission.READ_PRIVATE_APPS" />
+    <uses-permission android:name="app.beachchair.sexyspaces.permission.OPEN_UNLOCKED" />
+
+    <queries>
+        <package android:name="app.beachchair.sexyspaces" />
+        <provider android:authorities="app.beachchair.sexyspaces.privateapps" />
+    </queries>
 
     <!--override minSdk declared in it-->
     <uses-sdk tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk" />

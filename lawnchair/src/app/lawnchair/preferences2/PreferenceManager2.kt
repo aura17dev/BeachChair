@@ -575,6 +575,12 @@ class PreferenceManager2 @Inject constructor(
         onSet = { reloadHelper.reloadGrid() },
     )
 
+    val hotseatIconSpacingFactor = preference(
+        key = floatPreferencesKey(name = "hotseat_icon_spacing_factor"),
+        defaultValue = 1f,
+        onSet = { reloadHelper.reloadGrid() },
+    )
+
     val enableFuzzySearch = preference(
         key = booleanPreferencesKey(name = "enable_fuzzy_search"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_enable_fuzzy_search),
@@ -949,6 +955,7 @@ class PreferenceManager2 @Inject constructor(
             notificationDotTextColor,
             enableLabelInDock,
             hotseatBottomFactor,
+            hotseatIconSpacingFactor,
             isHotseatEnabled,
             drawerLeftRightMarginFactor,
             // Prefs read on the main thread during view inflation or context-menu build —
